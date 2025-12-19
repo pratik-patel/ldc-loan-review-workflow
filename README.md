@@ -31,7 +31,7 @@ terraform -chdir=ldc-loan-review-workflow/terraform apply -auto-approve
 ### Test
 
 ```bash
-./ldc-loan-review-workflow/test-step-functions.sh
+./test-deployment.sh
 ```
 
 ## Architecture
@@ -179,7 +179,9 @@ ldc-loan-review-workflow/
 │   ├── modules/                        # Terraform modules
 │   ├── terraform.tfvars                # Environment variables
 │   └── outputs.tf                      # Output values
-├── test-step-functions.sh              # Step Functions test script
+├── test-deployment.sh                  # Main verification script
+├── resume-executions.sh                # Resume paused workflows
+├── deploy.sh                           # Deployment automation
 ├── pom.xml                             # Parent POM
 └── README.md                           # This file
 ```
@@ -221,18 +223,6 @@ terraform -chdir=ldc-loan-review-workflow/terraform destroy -auto-approve
 ### Update Lambda Function
 
 ```bash
-# Update function code
-aws lambda update-function-code \
-  --function-name ldc-loan-review-lambda \
-  --zip-file fileb://ldc-loan-review-workflow/lambda-function/target/lambda-function-1.0.0.jar \
-  --region us-east-1
-
-# Update shared layer
-aws lambda publish-layer-version \
-  --layer-name ldc-loan-review-shared \
-  --zip-file fileb://ldc-loan-review-workflow/lambda-layer-shared/target/lambda-layer-shared-1.0.0-lambda-layer.zip \
-  --region us-east-1
-
 # Update Lambda configuration with new layer
 aws lambda update-function-configuration \
   --function-name ldc-loan-review-lambda \
@@ -240,6 +230,36 @@ aws lambda update-function-configuration \
            arn:aws:lambda:us-east-1:851725256415:layer:ldc-loan-review-shared:5 \
   --region us-east-1
 ```
+
+## Scripts Reference
+
+The project includes several shell scripts to automate build, deployment, and testing tasks:
+
+### Core Scripts
+- **`deploy.sh`**: The main deployment automation script.
+  - Usage: `./deploy.sh [dev|staging|prod]`
+  - Actions: Checks dependencies (Java, Maven, Terraform, AWS CLI), builds the Maven project (JARs + Layers), initializes Terraform, and applies the infrastructure configuration.
+
+### Verification & Testing
+- **`test-deployment.sh`**: The primary post-deployment verification script.
+  - Usage: `./test-deployment.sh`
+  - Actions: 
+    1. Checks Lambda function health.
+    2. Invokes key Lambda handlers directly (Validation, Status, Completion) to verify logic.
+    3. Checks Step Functions state machine accessibility.
+    4. Starts workflows for "Approved", "Repurchase", and "Reclass" scenarios.
+    5. Verifies DynamoDB table counts and CloudWatch Log groups.
+
+- **`resume-executions.sh`**: Helper script to unblock paused workflows.
+  - Usage: `./resume-executions.sh`
+  - Actions: Polls the SQS queue (`ldc-loan-review-reclass-confirmations`) for "Wait for Callback" tokens and sends a Success signal to Step Functions to resume execution. Useful for "Reclass" or "Manual Review" test scenarios.
+
+- **`test-step-functions.sh`**: Dedicated Step Functions logic tester.
+  - Usage: `./test-step-functions.sh`
+  - Actions: Starts executions for various business logic paths (Happy Path, Invalid Type, SecPolicy, Conduit) and polls for completion status.
+
+- **`test-aws-deployment.sh`**: Lightweight handler tester.
+  - Actions: Invokes Lambda handlers with specific payloads to verify individual component logic in isolation.
 
 ## Testing
 

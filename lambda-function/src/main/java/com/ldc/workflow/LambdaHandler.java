@@ -1,7 +1,7 @@
 package com.ldc.workflow;
 
 import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.SpringApplication;
@@ -9,13 +9,17 @@ import org.springframework.context.ApplicationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+
 /**
  * AWS Lambda handler for LDC Loan Review Workflow.
  * 
  * This handler initializes Spring Boot context and routes requests to appropriate handlers.
- * It implements the AWS Lambda RequestHandler interface directly.
+ * It implements the AWS Lambda RequestStreamHandler interface to avoid JSON deserialization issues.
  */
-public class LambdaHandler implements RequestHandler<JsonNode, JsonNode> {
+public class LambdaHandler implements RequestStreamHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(LambdaHandler.class);
     private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -33,24 +37,39 @@ public class LambdaHandler implements RequestHandler<JsonNode, JsonNode> {
     }
 
     @Override
-    public JsonNode handleRequest(JsonNode input, Context context) {
+    public void handleRequest(InputStream input, OutputStream output, Context context) {
         try {
-            logger.info("Lambda handler invoked with input: {}", input);
+            // Read input stream and parse JSON
+            String inputStr = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            logger.info("Lambda handler invoked with input: {}", inputStr);
+            
+            JsonNode inputNode = objectMapper.readTree(inputStr);
             
             // Get the loan review router bean from Spring context
             com.ldc.workflow.handlers.LoanReviewRouter router = 
                 applicationContext.getBean(com.ldc.workflow.handlers.LoanReviewRouter.class);
             
             // Route the request to the appropriate handler
-            JsonNode response = router.apply(input);
+            JsonNode response = router.apply(inputNode);
             
             logger.info("Lambda handler returning response: {}", response);
-            return response;
+            
+            // Write response to output stream
+            String responseStr = objectMapper.writeValueAsString(response);
+            output.write(responseStr.getBytes(StandardCharsets.UTF_8));
+            output.flush();
         } catch (Exception e) {
             logger.error("Error processing Lambda request", e);
-            return objectMapper.createObjectNode()
-                .put("error", e.getMessage())
-                .put("errorType", e.getClass().getSimpleName());
+            try {
+                JsonNode errorResponse = objectMapper.createObjectNode()
+                    .put("error", e.getMessage())
+                    .put("errorType", e.getClass().getSimpleName());
+                String errorStr = objectMapper.writeValueAsString(errorResponse);
+                output.write(errorStr.getBytes(StandardCharsets.UTF_8));
+                output.flush();
+            } catch (Exception ex) {
+                logger.error("Failed to write error response", ex);
+            }
         }
     }
 }

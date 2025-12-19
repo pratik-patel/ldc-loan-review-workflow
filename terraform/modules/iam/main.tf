@@ -170,6 +170,44 @@ resource "aws_iam_role_policy" "step_functions_lambda" {
   })
 }
 
+# Step Functions SQS policy
+resource "aws_iam_role_policy" "step_functions_sqs" {
+  name = "step-functions-sqs"
+  role = aws_iam_role.step_functions_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage"
+        ]
+        Resource = var.sqs_queue_arn
+      }
+    ]
+  })
+}
+
+# Step Functions DynamoDB policy
+resource "aws_iam_role_policy" "step_functions_dynamodb" {
+  name = "step-functions-dynamodb"
+  role = aws_iam_role.step_functions_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem"
+        ]
+        Resource = var.dynamodb_table_arn
+      }
+    ]
+  })
+}
+
 # Outputs
 output "lambda_role_arn" {
   value       = aws_iam_role.lambda_role.arn
