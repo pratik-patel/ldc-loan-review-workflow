@@ -115,9 +115,12 @@ terraform -chdir=ldc-loan-review-workflow/terraform apply -auto-approve
 ## API Endpoints
 
 ### Review Type Update
-```bash
-POST /api/review-type-update
+Invoke Lambda with `handlerType: "reviewTypeUpdateApi"`
+
+#### Request Payload
+```json
 {
+  "handlerType": "reviewTypeUpdateApi",
   "requestNumber": "REQ-001",
   "executionId": "exec-123",
   "newReviewType": "LDCReview",
@@ -125,10 +128,23 @@ POST /api/review-type-update
 }
 ```
 
-### Loan Decision Update
-```bash
-POST /api/loan-decision-update
+#### Response
+```json
 {
+  "success": true,
+  "requestNumber": "REQ-001",
+  "newReviewType": "LDCReview",
+  "message": "Review type updated and workflow resumed successfully"
+}
+```
+
+### Loan Decision Update
+Invoke Lambda with `handlerType: "loanDecisionUpdateApi"`
+
+#### Request Payload
+```json
+{
+  "handlerType": "loanDecisionUpdateApi",
   "requestNumber": "REQ-001",
   "executionId": "exec-123",
   "loanDecision": "Approved",
@@ -136,6 +152,41 @@ POST /api/loan-decision-update
     {"attributeName": "CreditScore", "attributeDecision": "Approved"}
   ],
   "taskToken": "token-xyz"
+}
+```
+
+#### Response
+```json
+{
+  "success": true,
+  "requestNumber": "REQ-001",
+  "loanDecision": "Approved",
+  "message": "Loan decision updated and workflow resumed successfully"
+}
+```
+
+## External Integrations (Consumed APIs)
+
+### Vend PPA API (Mock)
+Integration with external pricing and product engine.
+
+#### Request (Expected Contract)
+```json
+{
+  "requestNumber": "REQ-001",
+  "loanNumber": "LOAN-001",
+  "loanDecision": "Approved",
+  "loanStatus": "Approved"
+}
+```
+
+#### Response (Mocked)
+```json
+{
+  "vendPpaId": "VEND-REQ-001",
+  "status": "SUCCESS",
+  "timestamp": 1678886400000,
+  "message": "Mock Vend PPA response (TBD: actual implementation)"
 }
 ```
 
