@@ -19,36 +19,7 @@ output "max_reclass_attempts_parameter_name" {
   description = "Parameter Store name for max reclass attempts"
 }
 
-# Email Parameters
-output "email_template_repurchase_parameter_name" {
-  value       = aws_ssm_parameter.email_template_repurchase.name
-  description = "Parameter Store name for repurchase email template"
-}
 
-output "email_template_reclass_expired_parameter_name" {
-  value       = aws_ssm_parameter.email_template_reclass_expired.name
-  description = "Parameter Store name for reclass expired email template"
-}
-
-output "email_template_review_type_assignment_parameter_name" {
-  value       = aws_ssm_parameter.email_template_review_type_assignment.name
-  description = "Parameter Store name for review type assignment email template"
-}
-
-output "email_repurchase_team_parameter_name" {
-  value       = aws_ssm_parameter.email_repurchase_team.name
-  description = "Parameter Store name for repurchase team email"
-}
-
-output "email_reclass_team_parameter_name" {
-  value       = aws_ssm_parameter.email_reclass_team.name
-  description = "Parameter Store name for reclass team email"
-}
-
-output "email_admin_parameter_name" {
-  value       = aws_ssm_parameter.email_admin.name
-  description = "Parameter Store name for admin email"
-}
 
 # API Parameters
 output "vend_ppa_api_endpoint_parameter_name" {
@@ -133,14 +104,7 @@ output "all_parameters" {
       loan_decision_timeout                = aws_ssm_parameter.loan_decision_timeout.name
       max_reclass_attempts                 = aws_ssm_parameter.max_reclass_attempts.name
     }
-    email = {
-      template_repurchase                  = aws_ssm_parameter.email_template_repurchase.name
-      template_reclass_expired             = aws_ssm_parameter.email_template_reclass_expired.name
-      template_review_type_assignment      = aws_ssm_parameter.email_template_review_type_assignment.name
-      recipient_repurchase_team            = aws_ssm_parameter.email_repurchase_team.name
-      recipient_reclass_team               = aws_ssm_parameter.email_reclass_team.name
-      recipient_admin                      = aws_ssm_parameter.email_admin.name
-    }
+
     api = {
       vend_ppa_endpoint                    = aws_ssm_parameter.vend_ppa_api_endpoint.name
       vend_ppa_timeout                     = aws_ssm_parameter.vend_ppa_api_timeout.name
