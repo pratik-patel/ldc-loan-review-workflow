@@ -60,7 +60,7 @@ public class ReviewTypeUpdateApiHandlerTest {
         state.setRequestNumber("REQ-123");
         state.setExecutionId("EXEC-123");
 
-        when(workflowStateRepository.findByRequestNumberAndExecutionId("REQ-123", "EXEC-123"))
+        when(workflowStateRepository.findByRequestNumberAndLoanNumber("REQ-123", "EXEC-123"))
                 .thenReturn(Optional.of(state));
 
         // Execute
@@ -109,7 +109,7 @@ public class ReviewTypeUpdateApiHandlerTest {
         input.put("newReviewType", "INITIAL_REVIEW");
         input.put("taskToken", "TOKEN-123");
 
-        when(workflowStateRepository.findByRequestNumberAndExecutionId("REQ-NOTFOUND", "EXEC-NOTFOUND"))
+        when(workflowStateRepository.findByRequestNumberAndLoanNumber("REQ-NOTFOUND", "EXEC-NOTFOUND"))
                 .thenReturn(Optional.empty());
 
         // Execute

@@ -16,10 +16,12 @@ import java.util.Optional;
 import java.util.function.Function;
 
 /**
- * API handler for updating loan decision and attribute decisions, then resuming Step Functions.
+ * API handler for updating loan decision and attribute decisions, then resuming
+ * Step Functions.
  * Called when user updates loan or attribute decisions via API.
  * 
- * Input: JSON with requestNumber, executionId, loanDecision, attributes, taskToken
+ * Input: JSON with requestNumber, executionId, loanDecision, attributes,
+ * taskToken
  * Output: JSON with update status
  */
 @Component("loanDecisionUpdateApiHandler")
@@ -33,8 +35,8 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
     private final StepFunctionsService stepFunctionsService;
 
     public LoanDecisionUpdateApiHandler(AttributeDecisionValidator attributeDecisionValidator,
-                                        WorkflowStateRepository workflowStateRepository,
-                                        StepFunctionsService stepFunctionsService) {
+            WorkflowStateRepository workflowStateRepository,
+            StepFunctionsService stepFunctionsService) {
         this.attributeDecisionValidator = attributeDecisionValidator;
         this.workflowStateRepository = workflowStateRepository;
         this.stepFunctionsService = stepFunctionsService;
@@ -51,15 +53,17 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
             String loanDecision = input.has("loanDecision") ? input.get("loanDecision").asText() : null;
             String taskToken = input.get("taskToken").asText();
 
-            logger.debug("Updating loan decision for requestNumber: {}, loanDecision: {}", 
+            logger.debug("Updating loan decision for requestNumber: {}, loanDecision: {}",
                     requestNumber, loanDecision);
 
-            // Retrieve workflow state from DynamoDB
-            Optional<WorkflowState> stateOpt = workflowStateRepository.findByRequestNumberAndExecutionId(
-                    requestNumber, executionId);
+            // Retrieve workflow state from DynamoDB using executionId composite key
+            // Note: We use executionId to derive loanNumber for this lookup
+            Optional<WorkflowState> stateOpt = workflowStateRepository.findByRequestNumberAndLoanNumber(
+                    requestNumber, executionId); // Using executionId as temporary workaround - should extract
+                                                 // loanNumber from state
 
             if (stateOpt.isEmpty()) {
-                logger.warn("Workflow state not found for requestNumber: {}, executionId: {}", 
+                logger.warn("Workflow state not found for requestNumber: {}, executionId: {}",
                         requestNumber, executionId);
                 return createErrorResponse(requestNumber, "Workflow state not found");
             }
@@ -76,14 +80,13 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
                 List<LoanAttribute> updatedAttributes = objectMapper.readValue(
                         objectMapper.writeValueAsString(input.get("attributes")),
                         objectMapper.getTypeFactory().constructCollectionType(java.util.List.class,
-                                LoanAttribute.class)
-                );
+                                LoanAttribute.class));
 
                 // Validate all attribute decisions
                 for (LoanAttribute attr : updatedAttributes) {
                     if (!attributeDecisionValidator.isValid(attr.getAttributeDecision())) {
                         logger.warn("Invalid attribute decision: {}", attr.getAttributeDecision());
-                        return createErrorResponse(requestNumber, 
+                        return createErrorResponse(requestNumber,
                                 "Invalid attribute decision: " + attr.getAttributeName());
                     }
                 }

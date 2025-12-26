@@ -45,7 +45,7 @@ public class VendPpaIntegrationHandlerTest {
         state.setLoanNumber("LOAN-123");
         state.setLoanDecision("APPROVED");
 
-        when(workflowStateRepository.findByRequestNumberAndExecutionId("REQ-123", "EXEC-123"))
+        when(workflowStateRepository.findByRequestNumberAndLoanNumber("REQ-123", "EXEC-123"))
                 .thenReturn(Optional.of(state));
 
         JsonNode result = handler.apply(input);
@@ -63,7 +63,7 @@ public class VendPpaIntegrationHandlerTest {
         input.put("loanDecision", "APPROVED");
         input.put("executionId", "EXEC-NOTFOUND");
 
-        when(workflowStateRepository.findByRequestNumberAndExecutionId(anyString(), anyString()))
+        when(workflowStateRepository.findByRequestNumberAndLoanNumber(anyString(), anyString()))
                 .thenReturn(Optional.empty());
 
         JsonNode result = handler.apply(input);

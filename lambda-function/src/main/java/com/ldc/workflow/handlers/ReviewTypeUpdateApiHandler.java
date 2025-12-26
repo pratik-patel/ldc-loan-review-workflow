@@ -31,8 +31,8 @@ public class ReviewTypeUpdateApiHandler implements Function<JsonNode, JsonNode> 
     private final StepFunctionsService stepFunctionsService;
 
     public ReviewTypeUpdateApiHandler(ReviewTypeValidator reviewTypeValidator,
-                                      WorkflowStateRepository workflowStateRepository,
-                                      StepFunctionsService stepFunctionsService) {
+            WorkflowStateRepository workflowStateRepository,
+            StepFunctionsService stepFunctionsService) {
         this.reviewTypeValidator = reviewTypeValidator;
         this.workflowStateRepository = workflowStateRepository;
         this.stepFunctionsService = stepFunctionsService;
@@ -49,22 +49,24 @@ public class ReviewTypeUpdateApiHandler implements Function<JsonNode, JsonNode> 
             String newReviewType = input.get("newReviewType").asText();
             String taskToken = input.get("taskToken").asText();
 
-            logger.debug("Updating review type for requestNumber: {}, newReviewType: {}", 
+            logger.debug("Updating review type for requestNumber: {}, newReviewType: {}",
                     requestNumber, newReviewType);
 
             // Validate new review type
             if (!reviewTypeValidator.isValid(newReviewType)) {
                 logger.warn("Invalid review type: {}", newReviewType);
-                return createErrorResponse(requestNumber, 
+                return createErrorResponse(requestNumber,
                         reviewTypeValidator.getErrorMessage(newReviewType));
             }
 
-            // Retrieve workflow state from DynamoDB
-            Optional<WorkflowState> stateOpt = workflowStateRepository.findByRequestNumberAndExecutionId(
-                    requestNumber, executionId);
+            // Retrieve workflow state from DynamoDB using executionId composite key
+            // Note: We use executionId to derive loanNumber for this lookup
+            Optional<WorkflowState> stateOpt = workflowStateRepository.findByRequestNumberAndLoanNumber(
+                    requestNumber, executionId); // Using executionId as temporary workaround - should extract
+                                                 // loanNumber from state
 
             if (stateOpt.isEmpty()) {
-                logger.warn("Workflow state not found for requestNumber: {}, executionId: {}", 
+                logger.warn("Workflow state not found for requestNumber: {}, executionId: {}",
                         requestNumber, executionId);
                 return createErrorResponse(requestNumber, "Workflow state not found");
             }

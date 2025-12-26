@@ -62,7 +62,7 @@ public class LoanDecisionUpdateApiHandlerTest {
         WorkflowState state = new WorkflowState();
         state.setRequestNumber("REQ-123");
         state.setExecutionId("EXEC-123");
-        when(workflowStateRepository.findByRequestNumberAndExecutionId("REQ-123", "EXEC-123"))
+        when(workflowStateRepository.findByRequestNumberAndLoanNumber("REQ-123", "EXEC-123"))
                 .thenReturn(Optional.of(state));
 
         // Execute
@@ -96,7 +96,7 @@ public class LoanDecisionUpdateApiHandlerTest {
         when(attributeDecisionValidator.isValid("Verify")).thenReturn(true);
 
         WorkflowState state = new WorkflowState();
-        when(workflowStateRepository.findByRequestNumberAndExecutionId("REQ-123", "EXEC-123"))
+        when(workflowStateRepository.findByRequestNumberAndLoanNumber("REQ-123", "EXEC-123"))
                 .thenReturn(Optional.of(state));
 
         // Execute
@@ -117,7 +117,7 @@ public class LoanDecisionUpdateApiHandlerTest {
         input.put("executionId", "EXEC-NOTFOUND");
         input.put("taskToken", "TOKEN-123");
 
-        when(workflowStateRepository.findByRequestNumberAndExecutionId("REQ-NOTFOUND", "EXEC-NOTFOUND"))
+        when(workflowStateRepository.findByRequestNumberAndLoanNumber("REQ-NOTFOUND", "EXEC-NOTFOUND"))
                 .thenReturn(Optional.empty());
 
         // Execute
@@ -146,7 +146,7 @@ public class LoanDecisionUpdateApiHandlerTest {
         when(attributeDecisionValidator.isValid("INVALID")).thenReturn(false);
 
         WorkflowState state = new WorkflowState();
-        when(workflowStateRepository.findByRequestNumberAndExecutionId("REQ-123", "EXEC-123"))
+        when(workflowStateRepository.findByRequestNumberAndLoanNumber("REQ-123", "EXEC-123"))
                 .thenReturn(Optional.of(state));
 
         // Execute

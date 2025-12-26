@@ -74,9 +74,9 @@ while [ $COUNTER -lt $MAX_WAIT ]; do
     # Check if DynamoDB record exists
     ITEM_EXISTS=$(aws dynamodb get-item \
         --table-name "$DYNAMODB_TABLE" \
-        --key "{\"requestNumber\":{\"S\":\"$REQUEST_NUMBER\"},\"loanNumber\":{\"S\":\"$LOAN_NUMBER\"}}" \
+        --key "{\"RequestNumber\":{\"S\":\"$REQUEST_NUMBER\"},\"LoanNumber\":{\"S\":\"$LOAN_NUMBER\"}}" \
         --region "$REGION" \
-        --query 'Item.requestNumber.S' \
+        --query 'Item.RequestNumber.S' \
         --output text)
         
     if [[ "$ITEM_EXISTS" != "None" ]]; then
@@ -101,30 +101,21 @@ echo "   Updating attributes to 'Approved in DynamoDB..."
 # Note: In a real app, this would be done via API triggering the Lambda
 # Since the API is just another Lambda invocation, we can invoke Lambda or update DB directly.
 # The user asked to "simulate user input by triggering apis".
-# So we should invoke the Lambda with 'loanDecisionUpdateApi' handler type!
+# However, no specific handler currently exists for updating attributes, so simulating via DB update.
 
-PAYLOAD_JSON="{
-  \"handlerType\": \"loanDecisionUpdateApi\",
-  \"requestNumber\": \"$REQUEST_NUMBER\",
-  \"loanNumber\": \"$LOAN_NUMBER\",
-  \"loanDecision\": \"Approved\",
-  \"attributes\": [
-    {\"attributeName\": \"CreditScore\", \"attributeDecision\": \"Approved\"},
-    {\"attributeName\": \"DebtRatio\", \"attributeDecision\": \"Approved\"}
-  ]
-}"
+echo "   Updating DynamoDB item directly to simulate 'Approved' decision..."
 
-# Encode payload for AWS CLI v2
-PAYLOAD_BASE64=$(echo -n "$PAYLOAD_JSON" | base64)
+aws dynamodb update-item \
+    --table-name "$DYNAMODB_TABLE" \
+    --key "{\"RequestNumber\":{\"S\":\"$REQUEST_NUMBER\"},\"LoanNumber\":{\"S\":\"$LOAN_NUMBER\"}}" \
+    --update-expression "SET Attributes = :attrs, LoanDecision = :decision" \
+    --expression-attribute-values '{
+        ":attrs": {"S": "[{\"attributeName\":\"CreditScore\",\"attributeDecision\":\"Approved\"},{\"attributeName\":\"DebtRatio\",\"attributeDecision\":\"Approved\"}]"},
+        ":decision": {"S": "Approved"}
+    }' \
+    --region "$REGION"
 
-aws lambda invoke \
-  --function-name "$LAMBDA_FUNCTION" \
-  --payload "$INPUT_JSON" \
-  --cli-binary-format raw-in-base64-out \
-  --region "$REGION" \
-  response.json
-
-echo "   Response: $(cat response.json)"
+echo "   Response: DynamoDB Updated Successfully"
 
 echo "4. Monitoring for Completion..."
 # Poll for success

@@ -44,7 +44,7 @@ public class SqsMessageHandlerTest {
         input.put("loanNumber", "LOAN-123");
         input.put("executionId", "EXEC-123");
 
-        when(workflowStateRepository.findByRequestNumberAndExecutionId(anyString(), anyString()))
+        when(workflowStateRepository.findByRequestNumberAndLoanNumber(anyString(), anyString()))
                 .thenReturn(Optional.empty());
 
         JsonNode result = handler.apply(input);
@@ -67,7 +67,7 @@ public class SqsMessageHandlerTest {
         WorkflowState state = new WorkflowState();
         state.setRequestNumber("REQ-123");
 
-        when(workflowStateRepository.findByRequestNumberAndExecutionId(anyString(), anyString()))
+        when(workflowStateRepository.findByRequestNumberAndLoanNumber(anyString(), anyString()))
                 .thenReturn(Optional.of(state));
 
         JsonNode result = handler.apply(input);

@@ -26,9 +26,12 @@ public class LoanStatusDeterminationHandler implements Function<JsonNode, JsonNo
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private final LoanStatusDeterminer loanStatusDeterminer;
+    private final com.ldc.workflow.repository.WorkflowStateRepository workflowStateRepository;
 
-    public LoanStatusDeterminationHandler(LoanStatusDeterminer loanStatusDeterminer) {
+    public LoanStatusDeterminationHandler(LoanStatusDeterminer loanStatusDeterminer,
+            com.ldc.workflow.repository.WorkflowStateRepository workflowStateRepository) {
         this.loanStatusDeterminer = loanStatusDeterminer;
+        this.workflowStateRepository = workflowStateRepository;
     }
 
     @Override
@@ -39,15 +42,25 @@ public class LoanStatusDeterminationHandler implements Function<JsonNode, JsonNo
             // Extract input fields
             String requestNumber = input.get("requestNumber").asText("unknown");
             String loanNumber = input.get("loanNumber").asText("unknown");
+            String executionId = input.has("executionId") ? input.get("executionId").asText()
+                    : "ldc-loan-review-" + requestNumber;
 
-            logger.debug("Determining loan status for requestNumber: {}, loanNumber: {}", 
+            logger.debug("Determining loan status for requestNumber: {}, loanNumber: {}",
                     requestNumber, loanNumber);
 
-            // Extract attributes from input
-            List<LoanAttribute> attributes = extractAttributes(input);
-            if (attributes.isEmpty()) {
+            // Fetch from DynamoDB
+            java.util.Optional<com.ldc.workflow.types.WorkflowState> stateOpt = workflowStateRepository
+                    .findByRequestNumberAndLoanNumber(requestNumber, loanNumber);
+
+            if (stateOpt.isEmpty()) {
+                logger.warn("Workflow state not found for status determination");
+                return createErrorResponse(requestNumber, loanNumber, "Workflow state not found");
+            }
+
+            List<LoanAttribute> attributes = stateOpt.get().getAttributes();
+            if (attributes == null || attributes.isEmpty()) {
                 logger.warn("No attributes found for loan status determination");
-                return createErrorResponse(requestNumber, loanNumber, 
+                return createErrorResponse(requestNumber, loanNumber,
                         "No attributes found");
             }
 
@@ -59,14 +72,14 @@ public class LoanStatusDeterminationHandler implements Function<JsonNode, JsonNo
             return createSuccessResponse(requestNumber, loanNumber, loanStatus, attributes);
         } catch (Exception e) {
             logger.error("Error in loan status determination handler", e);
-            return createErrorResponse("unknown", "unknown", 
+            return createErrorResponse("unknown", "unknown",
                     "Internal error: " + e.getMessage());
         }
     }
 
     private List<LoanAttribute> extractAttributes(JsonNode input) {
         List<LoanAttribute> attributes = new ArrayList<>();
-        
+
         if (!input.has("attributes") || input.get("attributes").isNull()) {
             return attributes;
         }
@@ -78,9 +91,10 @@ public class LoanStatusDeterminationHandler implements Function<JsonNode, JsonNo
 
         for (JsonNode attrNode : attributesNode) {
             String name = attrNode.has("attributeName") ? attrNode.get("attributeName").asText() : null;
-            String decision = attrNode.has("attributeDecision") && !attrNode.get("attributeDecision").isNull() ? 
-                    attrNode.get("attributeDecision").asText() : null;
-            
+            String decision = attrNode.has("attributeDecision") && !attrNode.get("attributeDecision").isNull()
+                    ? attrNode.get("attributeDecision").asText()
+                    : null;
+
             if (name != null) {
                 LoanAttribute attr = new LoanAttribute();
                 attr.setAttributeName(name);
@@ -92,8 +106,8 @@ public class LoanStatusDeterminationHandler implements Function<JsonNode, JsonNo
         return attributes;
     }
 
-    private JsonNode createSuccessResponse(String requestNumber, String loanNumber, 
-                                          String loanStatus, List<LoanAttribute> attributes) {
+    private JsonNode createSuccessResponse(String requestNumber, String loanNumber,
+            String loanStatus, List<LoanAttribute> attributes) {
         return objectMapper.createObjectNode()
                 .put("success", true)
                 .put("requestNumber", requestNumber)

@@ -51,8 +51,8 @@ public class SqsMessageHandler implements Function<JsonNode, JsonNode> {
                     requestNumber, loanNumber);
 
             // Retrieve workflow state from DynamoDB
-            Optional<WorkflowState> stateOpt = workflowStateRepository.findByRequestNumberAndExecutionId(
-                    requestNumber, executionId);
+            Optional<WorkflowState> stateOpt = workflowStateRepository.findByRequestNumberAndLoanNumber(
+                    requestNumber, loanNumber);
 
             if (stateOpt.isEmpty()) {
                 logger.warn("Workflow state not found for requestNumber: {}, executionId: {}", 

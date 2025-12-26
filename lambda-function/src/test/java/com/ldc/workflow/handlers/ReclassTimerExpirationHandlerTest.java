@@ -50,7 +50,7 @@ public class ReclassTimerExpirationHandlerTest {
         state.setRequestNumber("REQ-123");
         state.setLoanNumber("LOAN-123");
 
-        when(workflowStateRepository.findByRequestNumberAndExecutionId("REQ-123", "EXEC-123"))
+        when(workflowStateRepository.findByRequestNumberAndLoanNumber("REQ-123", "EXEC-123"))
                 .thenReturn(Optional.of(state));
 
         JsonNode result = handler.apply(input);
@@ -69,7 +69,7 @@ public class ReclassTimerExpirationHandlerTest {
         input.put("executionId", "EXEC-NOTFOUND");
         input.put("loanNumber", "LOAN-123");
 
-        when(workflowStateRepository.findByRequestNumberAndExecutionId(anyString(), anyString()))
+        when(workflowStateRepository.findByRequestNumberAndLoanNumber(anyString(), anyString()))
                 .thenReturn(Optional.empty());
 
         JsonNode result = handler.apply(input);
@@ -86,7 +86,7 @@ public class ReclassTimerExpirationHandlerTest {
         input.put("loanNumber", "LOAN-123");
 
         WorkflowState state = new WorkflowState();
-        when(workflowStateRepository.findByRequestNumberAndExecutionId("REQ-123", "EXEC-123"))
+        when(workflowStateRepository.findByRequestNumberAndLoanNumber("REQ-123", "EXEC-123"))
                 .thenReturn(Optional.of(state));
 
         doThrow(new RuntimeException("Email Error")).when(emailService).sendNotificationEmail(anyString(), anyString(),

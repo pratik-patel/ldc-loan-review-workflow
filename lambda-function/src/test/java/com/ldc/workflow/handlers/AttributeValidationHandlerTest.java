@@ -53,7 +53,7 @@ class AttributeValidationHandlerTest {
         org.mockito.Mockito.lenient().when(attributeDecisionValidator.isValid(anyString()))
                 .thenReturn(false);
         // Default to empty for findByRequestNumberAndExecutionId
-        org.mockito.Mockito.lenient().when(workflowStateRepository.findByRequestNumberAndExecutionId(anyString(), anyString()))
+        org.mockito.Mockito.lenient().when(workflowStateRepository.findByRequestNumberAndLoanNumber(anyString(), anyString()))
                 .thenReturn(Optional.empty());
     }
 
@@ -78,7 +78,7 @@ class AttributeValidationHandlerTest {
         attr.setAttributeDecision(decision);
         mockState.setAttributes(java.util.Arrays.asList(attr));
         
-        when(workflowStateRepository.findByRequestNumberAndExecutionId(anyString(), anyString()))
+        when(workflowStateRepository.findByRequestNumberAndLoanNumber(anyString(), anyString()))
                 .thenReturn(Optional.of(mockState));
 
         // Act
@@ -108,7 +108,7 @@ class AttributeValidationHandlerTest {
         attr.setAttributeDecision("InvalidDecision");
         mockState.setAttributes(java.util.Arrays.asList(attr));
         
-        when(workflowStateRepository.findByRequestNumberAndExecutionId(anyString(), anyString()))
+        when(workflowStateRepository.findByRequestNumberAndLoanNumber(anyString(), anyString()))
                 .thenReturn(Optional.of(mockState));
 
         // Act
@@ -331,7 +331,7 @@ class AttributeValidationHandlerTest {
         input.putNull("attributes");
         
         // Don't mock the workflow state - let it return empty
-        when(workflowStateRepository.findByRequestNumberAndExecutionId(anyString(), anyString()))
+        when(workflowStateRepository.findByRequestNumberAndLoanNumber(anyString(), anyString()))
                 .thenReturn(Optional.empty());
 
         // Act
@@ -425,7 +425,7 @@ class AttributeValidationHandlerTest {
         mockState.setLoanNumber("LOAN-001");
         mockState.setAttributes(attributes);
         
-        when(workflowStateRepository.findByRequestNumberAndExecutionId(anyString(), anyString()))
+        when(workflowStateRepository.findByRequestNumberAndLoanNumber(anyString(), anyString()))
                 .thenReturn(Optional.of(mockState));
     }
 }

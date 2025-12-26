@@ -56,9 +56,7 @@
         "Payload": {
           "handlerType": "completionCriteria",
           "requestNumber.$": "$.requestNumber",
-          "loanNumber.$": "$.loanNumber",
-          "loanDecision.$": "$.loanDecisionResult.loanDecision",
-          "attributes.$": "$.loanDecisionResult.attributes"
+          "loanNumber.$": "$.loanNumber"
         }
       },
       "ResultPath": "$.completionResult",
@@ -96,11 +94,7 @@
         "Payload": {
           "handlerType": "loanStatusDetermination",
           "requestNumber.$": "$.requestNumber",
-          "loanNumber.$": "$.loanNumber",
-          "loanDecision.$": "$.loanDecisionResult.loanDecision",
-          "attributes.$": "$.loanDecisionResult.attributes",
-          "executionId.$": "$.executionId",
-          "dynamoDbTableName.$": "$.dynamoDbTableName"
+          "loanNumber.$": "$.loanNumber"
         }
       },
       "ResultPath": "$.statusResult",
@@ -166,9 +160,7 @@
         "Payload": {
           "handlerType": "loanStatusDetermination",
           "requestNumber.$": "$.requestNumber",
-          "loanNumber.$": "$.loanNumber",
-          "executionId.$": "$.executionId",
-          "dynamoDbTableName.$": "$.dynamoDbTableName"
+          "loanNumber.$": "$.loanNumber"
         }
       },
       "ResultPath": "$.statusResult",
@@ -210,9 +202,7 @@
           "handlerType": "vendPpaIntegration",
           "requestNumber.$": "$.requestNumber",
           "loanNumber.$": "$.loanNumber",
-          "loanDecision.$": "$.loanDecisionResult.loanDecision",
-          "loanStatus.$": "$.statusResult.Payload.status",
-          "dynamoDbTableName.$": "$.dynamoDbTableName"
+          "loanStatus.$": "$.statusResult.Payload.status"
         }
       },
       "ResultPath": "$.vendPpaResult",
@@ -251,9 +241,7 @@
           "handlerType": "auditTrail",
           "requestNumber.$": "$.requestNumber",
           "loanNumber.$": "$.loanNumber",
-          "executionId.$": "$.executionId",
-          "stateChange": "WorkflowCompleted",
-          "dynamoDbTableName.$": "$.dynamoDbTableName"
+          "stateChange": "WorkflowCompleted"
         }
       },
       "ResultPath": "$.auditResult",

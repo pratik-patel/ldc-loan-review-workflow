@@ -75,7 +75,7 @@ variable "lambda_memory_size" {
 variable "lambda_function_code_path" {
   description = "Path to Lambda function code JAR"
   type        = string
-  default     = "../lambda-function/target/lambda-function-1.0.0.jar"
+  default     = "../lambda-function/target/lambda-function-1.0.0-aws.jar"
 }
 
 # Step Functions Configuration

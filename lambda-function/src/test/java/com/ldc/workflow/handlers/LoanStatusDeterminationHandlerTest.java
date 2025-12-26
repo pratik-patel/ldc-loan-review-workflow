@@ -18,6 +18,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 /**
@@ -34,10 +35,45 @@ class LoanStatusDeterminationHandlerTest {
     @Mock
     private LoanStatusDeterminer loanStatusDeterminer;
 
+    @Mock
+    private com.ldc.workflow.repository.WorkflowStateRepository workflowStateRepository;
+
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        handler = new LoanStatusDeterminationHandler(loanStatusDeterminer);
+        handler = new LoanStatusDeterminationHandler(loanStatusDeterminer, workflowStateRepository);
+    }
+
+    // Helper to mock state repository response
+    private void mockWorkflowState(ObjectNode input) {
+        String requestNumber = input.has("requestNumber") ? input.get("requestNumber").asText() : "unknown";
+        String executionId = input.has("executionId") ? input.get("executionId").asText()
+                : "ldc-loan-review-" + requestNumber;
+
+        com.ldc.workflow.types.WorkflowState state = new com.ldc.workflow.types.WorkflowState();
+        state.setRequestNumber(requestNumber);
+
+        List<com.ldc.workflow.types.LoanAttribute> attributeList = new ArrayList<>();
+        if (input.has("attributes") && !input.get("attributes").isNull()) {
+            ArrayNode attributesNode = (ArrayNode) input.get("attributes");
+            for (JsonNode attrNode : attributesNode) {
+                com.ldc.workflow.types.LoanAttribute attr = new com.ldc.workflow.types.LoanAttribute();
+                if (attrNode.has("attributeName"))
+                    attr.setAttributeName(attrNode.get("attributeName").asText());
+                if (attrNode.has("attributeDecision"))
+                    attr.setAttributeDecision(attrNode.get("attributeDecision").asText());
+                attributeList.add(attr);
+            }
+        }
+        state.setAttributes(attributeList);
+
+        when(workflowStateRepository.findByRequestNumberAndLoanNumber(anyString(), anyString()))
+                .thenReturn(java.util.Optional.of(state));
+    }
+
+    private void mockWorkflowStateNotFound() {
+        when(workflowStateRepository.findByRequestNumberAndLoanNumber(anyString(), anyString()))
+                .thenReturn(java.util.Optional.empty());
     }
 
     @Test
@@ -50,7 +86,9 @@ class LoanStatusDeterminationHandlerTest {
         attributes.add(createAttribute("DebtRatio", "Approved"));
         attributes.add(createAttribute("IncomeVerification", "Approved"));
         input.set("attributes", attributes);
-        
+
+        mockWorkflowState(input);
+
         when(loanStatusDeterminer.determineStatus(anyList())).thenReturn("Approved");
 
         // Act
@@ -71,7 +109,7 @@ class LoanStatusDeterminationHandlerTest {
         attributes.add(createAttribute("DebtRatio", "Rejected"));
         attributes.add(createAttribute("IncomeVerification", "Rejected"));
         input.set("attributes", attributes);
-        
+
         when(loanStatusDeterminer.determineStatus(anyList())).thenReturn("Rejected");
 
         // Act
@@ -92,7 +130,7 @@ class LoanStatusDeterminationHandlerTest {
         attributes.add(createAttribute("DebtRatio", "Rejected"));
         attributes.add(createAttribute("IncomeVerification", "Approved"));
         input.set("attributes", attributes);
-        
+
         when(loanStatusDeterminer.determineStatus(anyList())).thenReturn("Partially Approved");
 
         // Act
@@ -113,7 +151,7 @@ class LoanStatusDeterminationHandlerTest {
         attributes.add(createAttribute("DebtRatio", "Repurchase"));
         attributes.add(createAttribute("IncomeVerification", "Approved"));
         input.set("attributes", attributes);
-        
+
         when(loanStatusDeterminer.determineStatus(anyList())).thenReturn("Repurchase");
 
         // Act
@@ -134,7 +172,7 @@ class LoanStatusDeterminationHandlerTest {
         attributes.add(createAttribute("DebtRatio", "Reclass"));
         attributes.add(createAttribute("IncomeVerification", "Approved"));
         input.set("attributes", attributes);
-        
+
         when(loanStatusDeterminer.determineStatus(anyList())).thenReturn("Reclass Approved");
 
         // Act
@@ -154,7 +192,7 @@ class LoanStatusDeterminationHandlerTest {
         attributes.add(createAttribute("CreditScore", "Repurchase"));
         attributes.add(createAttribute("DebtRatio", "Reclass"));
         input.set("attributes", attributes);
-        
+
         when(loanStatusDeterminer.determineStatus(anyList())).thenReturn("Repurchase");
 
         // Act
@@ -189,7 +227,7 @@ class LoanStatusDeterminationHandlerTest {
         ArrayNode attributes = objectMapper.createArrayNode();
         attributes.add(createAttribute("CreditScore", "Approved"));
         input.set("attributes", attributes);
-        
+
         when(loanStatusDeterminer.determineStatus(anyList())).thenReturn("Approved");
 
         // Act
@@ -210,7 +248,7 @@ class LoanStatusDeterminationHandlerTest {
         attributes.add(createAttribute("DebtRatio", "Pending"));
         attributes.add(createAttribute("IncomeVerification", "Approved"));
         input.set("attributes", attributes);
-        
+
         when(loanStatusDeterminer.determineStatus(anyList())).thenReturn("Approved");
 
         // Act
@@ -295,7 +333,7 @@ class LoanStatusDeterminationHandlerTest {
         attributes.add(createAttribute("CreditScore", "Repurchase"));
         attributes.add(createAttribute("DebtRatio", "Repurchase"));
         input.set("attributes", attributes);
-        
+
         when(loanStatusDeterminer.determineStatus(anyList())).thenReturn("Repurchase");
 
         // Act
@@ -315,7 +353,7 @@ class LoanStatusDeterminationHandlerTest {
         attributes.add(createAttribute("CreditScore", "Reclass"));
         attributes.add(createAttribute("DebtRatio", "Reclass"));
         input.set("attributes", attributes);
-        
+
         when(loanStatusDeterminer.determineStatus(anyList())).thenReturn("Reclass Approved");
 
         // Act

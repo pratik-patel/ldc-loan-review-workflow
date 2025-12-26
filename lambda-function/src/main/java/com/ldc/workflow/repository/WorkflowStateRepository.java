@@ -47,30 +47,32 @@ public class WorkflowStateRepository {
 
             // Convert state to DynamoDB item
             Map<String, AttributeValue> item = new HashMap<>();
-            item.put("requestNumber", AttributeValue.builder().s(state.getRequestNumber()).build());
-            item.put("executionId", AttributeValue.builder().s(state.getExecutionId()).build());
-            item.put("loanNumber", AttributeValue.builder().s(state.getLoanNumber()).build());
-            item.put("reviewType", AttributeValue.builder().s(state.getReviewType()).build());
-            item.put("createdAt", AttributeValue.builder().s(state.getCreatedAt()).build());
-            item.put("updatedAt", AttributeValue.builder().s(state.getUpdatedAt()).build());
-            item.put("status", AttributeValue.builder().s(state.getStatus() != null ? state.getStatus() : "PENDING").build());
+            item.put("RequestNumber", AttributeValue.builder().s(state.getRequestNumber()).build());
+            item.put("ExecutionId", AttributeValue.builder().s(state.getExecutionId()).build());
+            item.put("LoanNumber", AttributeValue.builder().s(state.getLoanNumber()).build());
+            item.put("ReviewType", AttributeValue.builder().s(state.getReviewType()).build());
+            item.put("CreatedAt", AttributeValue.builder().s(state.getCreatedAt()).build());
+            item.put("UpdatedAt", AttributeValue.builder().s(state.getUpdatedAt()).build());
+            item.put("Status",
+                    AttributeValue.builder().s(state.getStatus() != null ? state.getStatus() : "PENDING").build());
 
             // Optional fields
             if (state.getLoanDecision() != null) {
-                item.put("loanDecision", AttributeValue.builder().s(state.getLoanDecision()).build());
+                item.put("LoanDecision", AttributeValue.builder().s(state.getLoanDecision()).build());
             }
             if (state.getLoanStatus() != null) {
-                item.put("loanStatus", AttributeValue.builder().s(state.getLoanStatus()).build());
+                item.put("LoanStatus", AttributeValue.builder().s(state.getLoanStatus()).build());
             }
             if (state.getCurrentAssignedUsername() != null) {
-                item.put("currentAssignedUsername", AttributeValue.builder().s(state.getCurrentAssignedUsername()).build());
+                item.put("CurrentAssignedUsername",
+                        AttributeValue.builder().s(state.getCurrentAssignedUsername()).build());
             }
             if (state.getTaskToken() != null) {
-                item.put("taskToken", AttributeValue.builder().s(state.getTaskToken()).build());
+                item.put("TaskToken", AttributeValue.builder().s(state.getTaskToken()).build());
             }
             if (state.getAttributes() != null) {
                 String attributesJson = objectMapper.writeValueAsString(state.getAttributes());
-                item.put("attributes", AttributeValue.builder().s(attributesJson).build());
+                item.put("Attributes", AttributeValue.builder().s(attributesJson).build());
             }
 
             // Put item in DynamoDB
@@ -80,7 +82,7 @@ public class WorkflowStateRepository {
                     .build();
 
             dynamoDbClient.putItem(request);
-            logger.info("Saved workflow state for requestNumber: {}, executionId: {}", 
+            logger.info("Saved workflow state for requestNumber: {}, executionId: {}",
                     state.getRequestNumber(), state.getExecutionId());
         } catch (Exception e) {
             logger.error("Error saving workflow state for requestNumber: {}", state.getRequestNumber(), e);
@@ -89,33 +91,32 @@ public class WorkflowStateRepository {
     }
 
     /**
-     * Retrieve workflow state by requestNumber and executionId.
+     * Retrieve workflow state by requestNumber and loanNumber.
      */
-    public Optional<WorkflowState> findByRequestNumberAndExecutionId(String requestNumber, String executionId) {
+    public Optional<WorkflowState> findByRequestNumberAndLoanNumber(String requestNumber, String loanNumber) {
         try {
             GetItemRequest request = GetItemRequest.builder()
                     .tableName(tableName)
                     .key(Map.of(
-                            "requestNumber", AttributeValue.builder().s(requestNumber).build(),
-                            "executionId", AttributeValue.builder().s(executionId).build()
-                    ))
+                            "RequestNumber", AttributeValue.builder().s(requestNumber).build(),
+                            "LoanNumber", AttributeValue.builder().s(loanNumber).build()))
                     .build();
 
             GetItemResponse response = dynamoDbClient.getItem(request);
 
             if (response.item() == null || response.item().isEmpty()) {
-                logger.debug("No workflow state found for requestNumber: {}, executionId: {}", 
-                        requestNumber, executionId);
+                logger.debug("No workflow state found for requestNumber: {}, loanNumber: {}",
+                        requestNumber, loanNumber);
                 return Optional.empty();
             }
 
             WorkflowState state = convertItemToWorkflowState(response.item());
-            logger.debug("Retrieved workflow state for requestNumber: {}, executionId: {}", 
-                    requestNumber, executionId);
+            logger.debug("Retrieved workflow state for requestNumber: {}, loanNumber: {}",
+                    requestNumber, loanNumber);
             return Optional.of(state);
         } catch (Exception e) {
-            logger.error("Error retrieving workflow state for requestNumber: {}, executionId: {}", 
-                    requestNumber, executionId, e);
+            logger.error("Error retrieving workflow state for requestNumber: {}, loanNumber: {}",
+                    requestNumber, loanNumber, e);
             throw new RuntimeException("Failed to retrieve workflow state", e);
         }
     }
@@ -127,12 +128,11 @@ public class WorkflowStateRepository {
         try {
             QueryRequest request = QueryRequest.builder()
                     .tableName(tableName)
-                    .indexName("loanNumber-createdAt-index")
-                    .keyConditionExpression("loanNumber = :loanNumber")
+                    .indexName("LoanNumber-CreatedAt-Index")
+                    .keyConditionExpression("LoanNumber = :loanNumber")
                     .expressionAttributeValues(Map.of(
-                            ":loanNumber", AttributeValue.builder().s(loanNumber).build()
-                    ))
-                    .scanIndexForward(false) // Sort by createdAt descending
+                            ":loanNumber", AttributeValue.builder().s(loanNumber).build()))
+                    .scanIndexForward(false) // Sort by CreatedAt descending
                     .limit(1)
                     .build();
 
@@ -157,30 +157,30 @@ public class WorkflowStateRepository {
      */
     private WorkflowState convertItemToWorkflowState(Map<String, AttributeValue> item) throws Exception {
         WorkflowState state = new WorkflowState();
-        state.setRequestNumber(item.get("requestNumber").s());
-        state.setExecutionId(item.get("executionId").s());
-        state.setLoanNumber(item.get("loanNumber").s());
-        state.setReviewType(item.get("reviewType").s());
-        state.setCreatedAt(item.get("createdAt").s());
-        state.setUpdatedAt(item.get("updatedAt").s());
-        state.setStatus(item.get("status").s());
+        state.setRequestNumber(item.get("RequestNumber").s());
+        state.setExecutionId(item.get("ExecutionId").s());
+        state.setLoanNumber(item.get("LoanNumber").s());
+        state.setReviewType(item.get("ReviewType").s());
+        state.setCreatedAt(item.get("CreatedAt").s());
+        state.setUpdatedAt(item.get("UpdatedAt").s());
+        state.setStatus(item.get("Status").s());
 
-        if (item.containsKey("loanDecision") && item.get("loanDecision") != null) {
-            state.setLoanDecision(item.get("loanDecision").s());
+        if (item.containsKey("LoanDecision") && item.get("LoanDecision") != null) {
+            state.setLoanDecision(item.get("LoanDecision").s());
         }
-        if (item.containsKey("loanStatus") && item.get("loanStatus") != null) {
-            state.setLoanStatus(item.get("loanStatus").s());
+        if (item.containsKey("LoanStatus") && item.get("LoanStatus") != null) {
+            state.setLoanStatus(item.get("LoanStatus").s());
         }
-        if (item.containsKey("currentAssignedUsername") && item.get("currentAssignedUsername") != null) {
-            state.setCurrentAssignedUsername(item.get("currentAssignedUsername").s());
+        if (item.containsKey("CurrentAssignedUsername") && item.get("CurrentAssignedUsername") != null) {
+            state.setCurrentAssignedUsername(item.get("CurrentAssignedUsername").s());
         }
-        if (item.containsKey("taskToken") && item.get("taskToken") != null) {
-            state.setTaskToken(item.get("taskToken").s());
+        if (item.containsKey("TaskToken") && item.get("TaskToken") != null) {
+            state.setTaskToken(item.get("TaskToken").s());
         }
-        if (item.containsKey("attributes") && item.get("attributes") != null) {
-            String attributesJson = item.get("attributes").s();
-            state.setAttributes(objectMapper.readValue(attributesJson, 
-                    objectMapper.getTypeFactory().constructCollectionType(java.util.List.class, 
+        if (item.containsKey("Attributes") && item.get("Attributes") != null) {
+            String attributesJson = item.get("Attributes").s();
+            state.setAttributes(objectMapper.readValue(attributesJson,
+                    objectMapper.getTypeFactory().constructCollectionType(java.util.List.class,
                             com.ldc.workflow.types.LoanAttribute.class)));
         }
 

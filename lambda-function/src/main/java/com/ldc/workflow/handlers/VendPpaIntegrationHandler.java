@@ -15,7 +15,8 @@ import java.util.function.Function;
  * Lambda handler for Vend PPA integration.
  * Calls Vend PPA API with loan decision.
  * 
- * Input: JSON with requestNumber, loanNumber, loanDecision, loanStatus, executionId
+ * Input: JSON with requestNumber, loanNumber, loanDecision, loanStatus,
+ * executionId
  * Output: JSON with Vend PPA response or error
  */
 @Component("vendPpaIntegrationHandler")
@@ -38,26 +39,27 @@ public class VendPpaIntegrationHandler implements Function<JsonNode, JsonNode> {
             // Extract input fields
             String requestNumber = input.get("requestNumber").asText();
             String loanNumber = input.get("loanNumber").asText();
-            String loanDecision = input.get("loanDecision").asText();
             String loanStatus = input.has("loanStatus") ? input.get("loanStatus").asText() : null;
-            String executionId = input.has("executionId") ? input.get("executionId").asText() : 
-                    "ldc-loan-review-" + requestNumber;
+            String executionId = input.has("executionId") ? input.get("executionId").asText()
+                    : "ldc-loan-review-" + requestNumber;
 
-            logger.debug("Calling Vend PPA for requestNumber: {}, loanNumber: {}, decision: {}", 
-                    requestNumber, loanNumber, loanDecision);
 
             // Retrieve workflow state from DynamoDB
-            Optional<WorkflowState> stateOpt = workflowStateRepository.findByRequestNumberAndExecutionId(
-                    requestNumber, executionId);
+            Optional<WorkflowState> stateOpt = workflowStateRepository.findByRequestNumberAndLoanNumber(
+                    requestNumber, loanNumber);
 
             if (stateOpt.isEmpty()) {
-                logger.warn("Workflow state not found for requestNumber: {}, executionId: {}", 
+                logger.warn("Workflow state not found for requestNumber: {}, executionId: {}",
                         requestNumber, executionId);
-                return createErrorResponse(requestNumber, loanNumber, 
+                return createErrorResponse(requestNumber, loanNumber,
                         "Workflow state not found");
             }
 
             WorkflowState state = stateOpt.get();
+
+            // Get loan decision from DynamoDB WorkflowState
+            String loanDecision = state.getLoanDecision() != null ? state.getLoanDecision() : "Unknown";
+            logger.info("Retrieved loan decision from DynamoDB: {}", loanDecision);
 
             // Call Vend PPA API (TBD: actual implementation)
             // For now, using mock implementation
@@ -68,7 +70,7 @@ public class VendPpaIntegrationHandler implements Function<JsonNode, JsonNode> {
             return createSuccessResponse(requestNumber, loanNumber, vendPpaResponse);
         } catch (Exception e) {
             logger.error("Error in Vend PPA integration handler", e);
-            return createErrorResponse("unknown", "unknown", 
+            return createErrorResponse("unknown", "unknown",
                     "Internal error: " + e.getMessage());
         }
     }
@@ -79,7 +81,7 @@ public class VendPpaIntegrationHandler implements Function<JsonNode, JsonNode> {
      */
     private JsonNode callVendPpaApi(WorkflowState state) {
         try {
-            logger.debug("Calling Vend PPA API with loan state: requestNumber={}, loanNumber={}, decision={}", 
+            logger.debug("Calling Vend PPA API with loan state: requestNumber={}, loanNumber={}, decision={}",
                     state.getRequestNumber(), state.getLoanNumber(), state.getLoanDecision());
 
             // TBD: Implement actual Vend PPA API call
