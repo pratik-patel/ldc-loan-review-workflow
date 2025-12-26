@@ -5,13 +5,35 @@
 
 set -e
 
-REGION="us-east-1"
-LAMBDA_FUNCTION="ldc-loan-review-lambda"
-STATE_MACHINE_ARN="arn:aws:states:us-east-1:851725256415:stateMachine:ldc-loan-review-workflow"
-DYNAMODB_TABLE="ldc-loan-review-state"
+# Get resources from Terraform
+cd terraform
+LAMBDA_FUNCTION=$(terraform output -raw lambda_function_name)
+STATE_MACHINE_ARN=$(terraform output -raw step_functions_state_machine_arn)
+DYNAMODB_TABLE=$(terraform output -raw dynamodb_workflow_state_table_name)
+REGION=$(terraform output -raw aws_region 2>/dev/null || echo "us-east-1")
+cd ..
+
+if [ -z "$LAMBDA_FUNCTION" ]; then
+    echo "Error: Could not get lambda_function_name from terraform output"
+    exit 1
+fi
+
+if [ -z "$STATE_MACHINE_ARN" ]; then
+    echo "Error: Could not get step_functions_state_machine_arn from terraform output"
+    exit 1
+fi
+
+if [ -z "$DYNAMODB_TABLE" ]; then
+    echo "Error: Could not get dynamodb_workflow_state_table_name from terraform output"
+    exit 1
+fi
 
 echo "=========================================="
 echo "LDC Loan Review Workflow - Deployment Test"
+echo "Region: $REGION"
+echo "Lambda: $LAMBDA_FUNCTION"
+echo "State Machine: $STATE_MACHINE_ARN"
+echo "DynamoDB: $DYNAMODB_TABLE"
 echo "=========================================="
 echo ""
 
@@ -122,8 +144,7 @@ EXECUTION_INPUT='{
     {"attributeName": "EmploymentHistory", "attributeDecision": "Approved"}
   ],
   "executionId": "'$EXECUTION_NAME'",
-  "dynamoDbTableName": "'$DYNAMODB_TABLE'",
-  "pauseQueueUrl": "https://sqs.us-east-1.amazonaws.com/851725256415/ldc-loan-review-reclass-confirmations"
+  "dynamoDbTableName": "'$DYNAMODB_TABLE'"
 }'
 
 EXEC_ARN=$(aws stepfunctions start-execution \
@@ -162,8 +183,7 @@ EXECUTION_INPUT='{
     {"attributeName": "DebtToIncome", "attributeDecision": "Approved"}
   ],
   "executionId": "'$EXECUTION_NAME'",
-  "dynamoDbTableName": "'$DYNAMODB_TABLE'",
-  "pauseQueueUrl": "https://sqs.us-east-1.amazonaws.com/851725256415/ldc-loan-review-reclass-confirmations"
+  "dynamoDbTableName": "'$DYNAMODB_TABLE'"
 }'
 
 EXEC_ARN=$(aws stepfunctions start-execution \
@@ -201,8 +221,7 @@ EXECUTION_INPUT='{
     {"attributeName": "DebtToIncome", "attributeDecision": "Approved"}
   ],
   "executionId": "'$EXECUTION_NAME'",
-  "dynamoDbTableName": "'$DYNAMODB_TABLE'",
-  "pauseQueueUrl": "https://sqs.us-east-1.amazonaws.com/851725256415/ldc-loan-review-reclass-confirmations"
+  "dynamoDbTableName": "'$DYNAMODB_TABLE'"
 }'
 
 EXEC_ARN=$(aws stepfunctions start-execution \

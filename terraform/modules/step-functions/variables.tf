@@ -32,3 +32,8 @@ variable "reclass_timer_seconds" {
   type        = number
   default     = 172800 # 48 hours
 }
+
+variable "lambda_function_name" {
+  description = "Name of the Lambda function to invoke"
+  type        = string
+}

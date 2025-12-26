@@ -3,12 +3,15 @@ package com.ldc.workflow.handlers;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
+import com.ldc.workflow.service.ConfigurationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.services.ses.SesClient;
+import software.amazon.awssdk.services.ses.model.SendEmailRequest;
+import software.amazon.awssdk.services.ses.model.SendEmailResponse;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -20,11 +23,19 @@ public class EmailNotificationHandlerTest {
 
     private EmailNotificationHandler handler;
 
+    @Mock
+    private SesClient sesClient;
+
+    @Mock
+    private ConfigurationService configurationService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
-        handler = new EmailNotificationHandler();
+        handler = new EmailNotificationHandler(sesClient, configurationService);
+        lenient().when(configurationService.getNotificationEmail(anyString())).thenReturn("test@example.com");
+        lenient().when(configurationService.getEmailTemplate(anyString())).thenReturn("Hello ${loanNumber}");
     }
 
     // Note: Testing sendEmail requires setting environment variables which is hard
@@ -38,7 +49,9 @@ public class EmailNotificationHandlerTest {
     // BUT the catch block returns success=false.
 
     @Test
-    void testSuccessfulExecution() {
+    void testMissingConfiguration() {
+        when(configurationService.getNotificationEmail("repurchase")).thenReturn(null);
+
         ObjectNode input = objectMapper.createObjectNode();
         input.put("notificationType", "Repurchase");
         input.put("loanNumber", "LOAN-123");
@@ -47,8 +60,23 @@ public class EmailNotificationHandlerTest {
 
         JsonNode result = handler.apply(input);
 
-        assertTrue(result.get("success").asBoolean());
-        assertTrue(result.get("sent").asBoolean());
-        assertTrue(result.get("messageId").asText().startsWith("mock-message-id-"));
+        assertFalse(result.get("sent").asBoolean());
+        assertEquals("Recipient email not configured", result.get("messageId").asText());
+    }
+
+    @Test
+    void testMissingTemplate() {
+        when(configurationService.getEmailTemplate("template-1")).thenReturn(null);
+
+        ObjectNode input = objectMapper.createObjectNode();
+        input.put("notificationType", "Repurchase");
+        input.put("loanNumber", "LOAN-123");
+        input.put("requestNumber", "REQ-123");
+        input.put("templateName", "template-1");
+
+        JsonNode result = handler.apply(input);
+
+        assertFalse(result.get("sent").asBoolean());
+        assertEquals("Email template not found", result.get("messageId").asText());
     }
 }

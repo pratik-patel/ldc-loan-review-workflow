@@ -9,7 +9,7 @@ terraform {
 
 # IAM Role for Lambda Function
 resource "aws_iam_role" "lambda_role" {
-  name = "ldc-loan-review-lambda-role"
+  name = "ldc-loan-review-lambda-role-${var.environment}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -23,15 +23,20 @@ resource "aws_iam_role" "lambda_role" {
       }
     ]
   })
+
+  tags = {
+    Environment = var.environment
+    Purpose     = "Lambda Execution Role"
+  }
 }
 
-# Basic Lambda execution policy
+# Basic Lambda execution policy (CloudWatch Logs)
 resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-# DynamoDB access policy
+# DynamoDB access policy for WorkflowState and AuditTrail tables
 resource "aws_iam_role_policy" "dynamodb_access" {
   name = "dynamodb-access"
   role = aws_iam_role.lambda_role.id
@@ -48,72 +53,16 @@ resource "aws_iam_role_policy" "dynamodb_access" {
           "dynamodb:Query",
           "dynamodb:Scan"
         ]
-        Resource = var.dynamodb_table_arn
-      }
-    ]
-  })
-}
-
-# SQS access policy
-resource "aws_iam_role_policy" "sqs_access" {
-  name = "sqs-access"
-  role = aws_iam_role.lambda_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "sqs:SendMessage",
-          "sqs:GetQueueAttributes"
+        Resource = [
+          var.dynamodb_table_arn,
+          "${var.dynamodb_table_arn}-audit"
         ]
-        Resource = var.sqs_queue_arn
       }
     ]
   })
 }
 
-# SNS access policy
-resource "aws_iam_role_policy" "sns_access" {
-  name = "sns-access"
-  role = aws_iam_role.lambda_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "sns:Publish"
-        ]
-        Resource = var.sns_topic_arn
-      }
-    ]
-  })
-}
-
-# SES access policy
-resource "aws_iam_role_policy" "ses_access" {
-  name = "ses-access"
-  role = aws_iam_role.lambda_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "ses:SendEmail",
-          "ses:SendRawEmail"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
-}
-
-# Parameter Store access policy
+# Parameter Store access policy for configuration
 resource "aws_iam_role_policy" "parameter_store_access" {
   name = "parameter-store-access"
   role = aws_iam_role.lambda_role.id
@@ -125,7 +74,8 @@ resource "aws_iam_role_policy" "parameter_store_access" {
         Effect = "Allow"
         Action = [
           "ssm:GetParameter",
-          "ssm:GetParameters"
+          "ssm:GetParameters",
+          "ssm:GetParametersByPath"
         ]
         Resource = "arn:aws:ssm:*:*:parameter/ldc-workflow/*"
       }
@@ -135,7 +85,7 @@ resource "aws_iam_role_policy" "parameter_store_access" {
 
 # IAM Role for Step Functions
 resource "aws_iam_role" "step_functions_role" {
-  name = "ldc-loan-review-step-functions-role"
+  name = "ldc-loan-review-step-functions-role-${var.environment}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -149,6 +99,11 @@ resource "aws_iam_role" "step_functions_role" {
       }
     ]
   })
+
+  tags = {
+    Environment = var.environment
+    Purpose     = "Step Functions Execution Role"
+  }
 }
 
 # Step Functions Lambda invoke policy
@@ -170,25 +125,6 @@ resource "aws_iam_role_policy" "step_functions_lambda" {
   })
 }
 
-# Step Functions SQS policy
-resource "aws_iam_role_policy" "step_functions_sqs" {
-  name = "step-functions-sqs"
-  role = aws_iam_role.step_functions_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "sqs:SendMessage"
-        ]
-        Resource = var.sqs_queue_arn
-      }
-    ]
-  })
-}
-
 # Step Functions DynamoDB policy
 resource "aws_iam_role_policy" "step_functions_dynamodb" {
   name = "step-functions-dynamodb"
@@ -200,9 +136,39 @@ resource "aws_iam_role_policy" "step_functions_dynamodb" {
       {
         Effect = "Allow"
         Action = [
-          "dynamodb:GetItem"
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem"
         ]
-        Resource = var.dynamodb_table_arn
+        Resource = [
+          var.dynamodb_table_arn,
+          "${var.dynamodb_table_arn}-audit"
+        ]
+      }
+    ]
+  })
+}
+
+# Step Functions CloudWatch Logs policy
+resource "aws_iam_role_policy" "step_functions_logs" {
+  name = "step-functions-logs"
+  role = aws_iam_role.step_functions_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogDeliveryOptions",
+          "logs:GetLogDeliveryOptions",
+          "logs:UpdateLogDeliveryOptions",
+          "logs:DeleteLogDeliveryOptions",
+          "logs:PutResourcePolicy",
+          "logs:DescribeResourcePolicies",
+          "logs:DescribeLogGroups"
+        ]
+        Resource = "*"
       }
     ]
   })
@@ -214,7 +180,17 @@ output "lambda_role_arn" {
   description = "Lambda execution role ARN"
 }
 
+output "lambda_role_name" {
+  value       = aws_iam_role.lambda_role.name
+  description = "Lambda execution role name"
+}
+
 output "step_functions_role_arn" {
   value       = aws_iam_role.step_functions_role.arn
   description = "Step Functions execution role ARN"
+}
+
+output "step_functions_role_name" {
+  value       = aws_iam_role.step_functions_role.name
+  description = "Step Functions execution role name"
 }

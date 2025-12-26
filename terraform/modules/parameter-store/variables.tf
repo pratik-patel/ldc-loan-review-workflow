@@ -93,9 +93,9 @@ variable "feature_flags" {
 variable "logging" {
   description = "Logging and monitoring configuration"
   type = object({
-    log_level                    = string
-    enable_detailed_logging      = string
-    cloudwatch_metric_namespace  = string
+    log_level                   = string
+    enable_detailed_logging     = string
+    cloudwatch_metric_namespace = string
   })
   default = {
     log_level                   = "INFO"

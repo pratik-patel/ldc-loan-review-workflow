@@ -11,6 +11,7 @@ terraform {
 locals {
   state_machine_definition = templatefile("${path.module}/definition.asl.json", {
     reclass_timer_seconds = var.reclass_timer_seconds
+    lambda_function_name  = var.lambda_function_name
   })
 }
 

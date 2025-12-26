@@ -57,8 +57,8 @@ resource "aws_lambda_function" "ldc_loan_review" {
 
 # Lambda Function URL (optional, for testing)
 resource "aws_lambda_function_url" "ldc_loan_review" {
-  function_name          = aws_lambda_function.ldc_loan_review.function_name
-  authorization_type    = "NONE"
+  function_name      = aws_lambda_function.ldc_loan_review.function_name
+  authorization_type = "NONE"
   cors {
     allow_credentials = false
     allow_methods     = ["POST"]

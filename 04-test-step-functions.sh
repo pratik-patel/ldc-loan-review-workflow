@@ -5,16 +5,29 @@
 
 set -e
 
-STATE_MACHINE_ARN="arn:aws:states:us-east-1:851725256415:stateMachine:ldc-loan-review-workflow"
-AWS_REGION="us-east-1"
-PAUSE_QUEUE_URL=$(aws sqs list-queues --region "$AWS_REGION" --query "QueueUrls[?contains(@, 'ldc-loan-review-reclass-confirmations')]" --output text)
-DYNAMODB_TABLE_NAME=$(aws dynamodb list-tables --region "$AWS_REGION" --query "TableNames[?contains(@, 'ldc-loan-review-state')]" --output text)
+# Get resources from Terraform
+cd terraform
+STATE_MACHINE_ARN=$(terraform output -raw step_functions_state_machine_arn)
+AWS_REGION=$(terraform output -raw aws_region 2>/dev/null || echo "us-east-1")
+DYNAMODB_TABLE_NAME=$(terraform output -raw dynamodb_workflow_state_table_name)
+cd ..
 
-echo "Using SQS Queue: $PAUSE_QUEUE_URL"
+if [ -z "$STATE_MACHINE_ARN" ]; then
+    echo "Error: Could not get step_functions_state_machine_arn from terraform output"
+    exit 1
+fi
+
+if [ -z "$DYNAMODB_TABLE_NAME" ]; then
+    echo "Error: Could not get dynamodb_workflow_state_table_name from terraform output"
+    exit 1
+fi
+
 echo "Using DynamoDB Table: $DYNAMODB_TABLE_NAME"
 
 echo "=========================================="
 echo "LDC Loan Review Workflow - Step Functions Test Suite"
+echo "Region: $AWS_REGION"
+echo "State Machine: $STATE_MACHINE_ARN"
 echo "=========================================="
 echo ""
 
@@ -27,7 +40,6 @@ PAYLOAD=$(cat <<EOF
   "loanNumber": "LOAN-HAPPY-001",
   "reviewType": "LDCReview",
   "currentAssignedUsername": "testuser",
-  "pauseQueueUrl": "$PAUSE_QUEUE_URL",
   "dynamoDbTableName": "$DYNAMODB_TABLE_NAME",
   "attributes": [
     {"attributeName": "CreditScore", "attributeDecision": "Pending"},
@@ -81,7 +93,6 @@ PAYLOAD=$(cat <<EOF
   "loanNumber": "LOAN-INVALID-001",
   "reviewType": "InvalidType",
   "currentAssignedUsername": "testuser",
-  "pauseQueueUrl": "$PAUSE_QUEUE_URL",
   "dynamoDbTableName": "$DYNAMODB_TABLE_NAME",
   "attributes": [],
   "executionId": "$EXECUTION_NAME"
@@ -128,7 +139,6 @@ PAYLOAD=$(cat <<EOF
   "loanNumber": "LOAN-SECPOLICY-001",
   "reviewType": "SecPolicyReview",
   "currentAssignedUsername": "testuser",
-  "pauseQueueUrl": "$PAUSE_QUEUE_URL",
   "dynamoDbTableName": "$DYNAMODB_TABLE_NAME",
   "attributes": [
     {"attributeName": "ComplianceCheck", "attributeDecision": "Pending"}
@@ -173,7 +183,6 @@ PAYLOAD=$(cat <<EOF
   "loanNumber": "LOAN-CONDUIT-001",
   "reviewType": "ConduitReview",
   "currentAssignedUsername": "testuser",
-  "pauseQueueUrl": "$PAUSE_QUEUE_URL",
   "dynamoDbTableName": "$DYNAMODB_TABLE_NAME",
   "attributes": [
     {"attributeName": "ConduitCompliance", "attributeDecision": "Pending"}
@@ -219,7 +228,6 @@ PAYLOAD=$(cat <<EOF
   "loanNumber": "LOAN-REPURCHASE-001",
   "reviewType": "LDCReview",
   "currentAssignedUsername": "testuser",
-  "pauseQueueUrl": "$PAUSE_QUEUE_URL",
   "dynamoDbTableName": "$DYNAMODB_TABLE_NAME",
   "attributes": [
     {"attributeName": "CreditScore", "attributeDecision": "Pending"}
@@ -260,7 +268,6 @@ PAYLOAD=$(cat <<EOF
   "loanNumber": "LOAN-RECLASS-001",
   "reviewType": "LDCReview",
   "currentAssignedUsername": "testuser",
-  "pauseQueueUrl": "$PAUSE_QUEUE_URL",
   "dynamoDbTableName": "$DYNAMODB_TABLE_NAME",
   "attributes": [
     {"attributeName": "CreditScore", "attributeDecision": "Pending"}

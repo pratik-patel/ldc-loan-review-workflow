@@ -5,12 +5,28 @@
 
 set -e
 
-LAMBDA_FUNCTION_NAME="ldc-loan-review-lambda"
-STATE_MACHINE_ARN="arn:aws:states:us-east-1:851725256415:stateMachine:ldc-loan-review-workflow"
-AWS_REGION="us-east-1"
+# Get resources from Terraform
+cd terraform
+LAMBDA_FUNCTION_NAME=$(terraform output -raw lambda_function_name)
+STATE_MACHINE_ARN=$(terraform output -raw step_functions_state_machine_arn)
+AWS_REGION=$(terraform output -raw aws_region 2>/dev/null || echo "us-east-1")
+cd ..
+
+if [ -z "$LAMBDA_FUNCTION_NAME" ]; then
+    echo "Error: Could not get lambda_function_name from terraform output"
+    exit 1
+fi
+
+if [ -z "$STATE_MACHINE_ARN" ]; then
+    echo "Error: Could not get step_functions_state_machine_arn from terraform output"
+    exit 1
+fi
 
 echo "=========================================="
 echo "LDC Loan Review Workflow - AWS Test Suite"
+echo "Region: $AWS_REGION"
+echo "Lambda: $LAMBDA_FUNCTION_NAME"
+echo "State Machine: $STATE_MACHINE_ARN"
 echo "=========================================="
 echo ""
 

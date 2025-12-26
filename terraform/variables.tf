@@ -44,34 +44,6 @@ variable "dynamodb_point_in_time_recovery" {
   default     = true
 }
 
-# SQS Configuration
-variable "sqs_queue_name" {
-  description = "SQS queue name for reclass confirmations"
-  type        = string
-  default     = "ldc-loan-review-reclass-confirmations"
-}
-
-variable "sqs_message_retention" {
-  description = "SQS message retention period in seconds"
-  type        = number
-  default     = 1209600 # 14 days
-}
-
-variable "sqs_visibility_timeout" {
-  description = "SQS visibility timeout in seconds"
-  type        = number
-  default     = 300 # 5 minutes
-}
-
-# SNS Configuration
-variable "sns_topic_name" {
-  description = "SNS topic name for email notifications"
-  type        = string
-  default     = "ldc-loan-review-notifications"
-}
-
-# SES Configuration
-
 
 # Lambda Configuration
 variable "lambda_function_name" {
@@ -83,7 +55,7 @@ variable "lambda_function_name" {
 variable "lambda_timeout" {
   description = "Lambda function timeout in seconds"
   type        = number
-  default     = 60
+  default     = 300
   validation {
     condition     = var.lambda_timeout >= 1 && var.lambda_timeout <= 900
     error_message = "Lambda timeout must be between 1 and 900 seconds."
@@ -129,8 +101,6 @@ variable "cloudwatch_log_retention_days" {
     error_message = "CloudWatch log retention must be a valid value."
   }
 }
-
-# Email Configuration
 
 
 # API & Integration Endpoints
@@ -186,9 +156,9 @@ variable "feature_flags" {
 variable "logging" {
   description = "Logging and monitoring configuration"
   type = object({
-    log_level                    = string
-    enable_detailed_logging      = string
-    cloudwatch_metric_namespace  = string
+    log_level                   = string
+    enable_detailed_logging     = string
+    cloudwatch_metric_namespace = string
   })
   default = {
     log_level                   = "INFO"

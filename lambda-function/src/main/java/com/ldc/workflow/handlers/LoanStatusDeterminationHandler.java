@@ -16,7 +16,7 @@ import java.util.function.Function;
  * Lambda handler for loan status determination.
  * Determines the final loan status based on attribute decisions.
  * 
- * Input: JSON with requestNumber, loanNumber, attributes, executionId
+ * Input: JSON with requestNumber, loanNumber, attributes
  * Output: JSON with determined loan status
  */
 @Component("loanStatusDeterminationHandler")

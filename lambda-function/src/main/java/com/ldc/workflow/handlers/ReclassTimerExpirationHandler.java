@@ -3,7 +3,7 @@ package com.ldc.workflow.handlers;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ldc.workflow.repository.WorkflowStateRepository;
-
+import com.ldc.workflow.service.EmailService;
 import com.ldc.workflow.types.WorkflowState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,9 +29,12 @@ public class ReclassTimerExpirationHandler implements Function<JsonNode, JsonNod
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private final WorkflowStateRepository workflowStateRepository;
+    private final EmailService emailService;
 
-    public ReclassTimerExpirationHandler(WorkflowStateRepository workflowStateRepository) {
+    public ReclassTimerExpirationHandler(WorkflowStateRepository workflowStateRepository,
+                                         EmailService emailService) {
         this.workflowStateRepository = workflowStateRepository;
+        this.emailService = emailService;
     }
 
     @Override
@@ -44,7 +47,7 @@ public class ReclassTimerExpirationHandler implements Function<JsonNode, JsonNod
             String executionId = input.get("executionId").asText();
             String loanNumber = input.get("loanNumber").asText();
 
-            logger.debug("Processing reclass timer expiration for requestNumber: {}, loanNumber: {}",
+            logger.debug("Processing reclass timer expiration for requestNumber: {}, loanNumber: {}", 
                     requestNumber, loanNumber);
 
             // Retrieve workflow state from DynamoDB
@@ -52,7 +55,7 @@ public class ReclassTimerExpirationHandler implements Function<JsonNode, JsonNod
                     requestNumber, executionId);
 
             if (stateOpt.isEmpty()) {
-                logger.warn("Workflow state not found for requestNumber: {}, executionId: {}",
+                logger.warn("Workflow state not found for requestNumber: {}, executionId: {}", 
                         requestNumber, executionId);
                 return createErrorResponse(requestNumber, "Workflow state not found");
             }
@@ -79,13 +82,20 @@ public class ReclassTimerExpirationHandler implements Function<JsonNode, JsonNod
             // Build email context
             String subject = "Reclass Confirmation Expired - Loan " + state.getLoanNumber();
             String templateName = "reclass-expired";
-
+            
             // Send email (non-blocking - errors are logged but don't fail workflow)
-            logger.info("MOCK EMAIL SEND: Subject='{}', Template='{}', RequestNumber={}",
-                    subject, templateName, state.getRequestNumber());
-            logger.debug("Reclass expiration notification logged successfully.");
+            emailService.sendNotificationEmail(
+                    state.getRequestNumber(),
+                    state.getLoanNumber(),
+                    subject,
+                    templateName,
+                    state
+            );
+
+            logger.info("Reclass expiration email sent successfully for requestNumber: {}", 
+                    state.getRequestNumber());
         } catch (Exception e) {
-            logger.error("Error logging reclass expiration email for requestNumber: {}",
+            logger.error("Error sending reclass expiration email for requestNumber: {}", 
                     state.getRequestNumber(), e);
             // Non-blocking error - log but don't throw
         }

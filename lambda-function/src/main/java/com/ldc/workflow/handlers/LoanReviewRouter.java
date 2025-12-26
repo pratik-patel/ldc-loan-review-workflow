@@ -61,12 +61,6 @@ public class LoanReviewRouter implements Function<JsonNode, JsonNode> {
     @Autowired(required = false)
     private ReclassTimerExpirationHandler reclassTimerExpirationHandler;
 
-    @Autowired(required = false)
-    private ReviewTypeUpdateApiHandler reviewTypeUpdateApiHandler;
-
-    @Autowired(required = false)
-    private LoanDecisionUpdateApiHandler loanDecisionUpdateApiHandler;
-
     @Override
     public JsonNode apply(JsonNode input) {
         try {
@@ -101,12 +95,6 @@ public class LoanReviewRouter implements Function<JsonNode, JsonNode> {
                 case "reclassTimerExpiration" ->
                     reclassTimerExpirationHandler != null ? reclassTimerExpirationHandler.apply(input)
                             : createNotImplementedResponse("reclassTimerExpiration");
-                case "reviewTypeUpdateApi" ->
-                    reviewTypeUpdateApiHandler != null ? reviewTypeUpdateApiHandler.apply(input)
-                            : createNotImplementedResponse("reviewTypeUpdateApi");
-                case "loanDecisionUpdateApi" ->
-                    loanDecisionUpdateApiHandler != null ? loanDecisionUpdateApiHandler.apply(input)
-                            : createNotImplementedResponse("loanDecisionUpdateApi");
                 default -> {
                     logger.error("Unknown handler type: {}", handlerType);
                     yield createErrorResponse("Unknown handler type: " + handlerType);
