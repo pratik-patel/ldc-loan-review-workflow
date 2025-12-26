@@ -25,7 +25,7 @@ NC='\033[0m' # No Color
 # Configuration
 ENVIRONMENT=${1:-dev}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$SCRIPT_DIR"
+PROJECT_ROOT="$SCRIPT_DIR/.."
 TERRAFORM_DIR="$PROJECT_ROOT/terraform"
 
 # Validate environment

@@ -31,28 +31,16 @@ class LoanReviewRouterTest {
     private ReviewTypeValidationHandler reviewTypeValidationHandler;
 
     @Mock
-    private AttributeValidationHandler attributeValidationHandler;
-
-    @Mock
     private CompletionCriteriaHandler completionCriteriaHandler;
 
     @Mock
     private LoanStatusDeterminationHandler loanStatusDeterminationHandler;
 
     @Mock
-    private EmailNotificationHandler emailNotificationHandler;
-
-    @Mock
     private VendPpaIntegrationHandler vendPpaIntegrationHandler;
 
     @Mock
-    private SqsMessageHandler sqsMessageHandler;
-
-    @Mock
     private AuditTrailHandler auditTrailHandler;
-
-    @Mock
-    private ReclassTimerExpirationHandler reclassTimerExpirationHandler;
 
     @InjectMocks
     private LoanReviewRouter router;
@@ -75,24 +63,6 @@ class LoanReviewRouterTest {
         ObjectNode mockResponse = objectMapper.createObjectNode();
         mockResponse.put("success", true);
         when(reviewTypeValidationHandler.apply(any())).thenReturn(mockResponse);
-
-        // Act
-        JsonNode result = router.apply(input);
-
-        // Assert
-        assertTrue(result.get("success").asBoolean());
-    }
-
-    @Test
-    @DisplayName("Should route to attributeValidation handler")
-    void testRouteToAttributeValidation() {
-        // Arrange
-        ObjectNode input = objectMapper.createObjectNode();
-        input.put("handlerType", "attributeValidation");
-
-        ObjectNode mockResponse = objectMapper.createObjectNode();
-        mockResponse.put("success", true);
-        when(attributeValidationHandler.apply(any())).thenReturn(mockResponse);
 
         // Act
         JsonNode result = router.apply(input);
@@ -138,24 +108,6 @@ class LoanReviewRouterTest {
     }
 
     @Test
-    @DisplayName("Should route to emailNotification handler")
-    void testRouteToEmailNotification() {
-        // Arrange
-        ObjectNode input = objectMapper.createObjectNode();
-        input.put("handlerType", "emailNotification");
-
-        ObjectNode mockResponse = objectMapper.createObjectNode();
-        mockResponse.put("success", true);
-        when(emailNotificationHandler.apply(any())).thenReturn(mockResponse);
-
-        // Act
-        JsonNode result = router.apply(input);
-
-        // Assert
-        assertTrue(result.get("success").asBoolean());
-    }
-
-    @Test
     @DisplayName("Should route to vendPpaIntegration handler")
     void testRouteToVendPpaIntegration() {
         // Arrange
@@ -174,24 +126,6 @@ class LoanReviewRouterTest {
     }
 
     @Test
-    @DisplayName("Should route to sqsHandler")
-    void testRouteToSqsHandler() {
-        // Arrange
-        ObjectNode input = objectMapper.createObjectNode();
-        input.put("handlerType", "sqsHandler");
-
-        ObjectNode mockResponse = objectMapper.createObjectNode();
-        mockResponse.put("success", true);
-        when(sqsMessageHandler.apply(any())).thenReturn(mockResponse);
-
-        // Act
-        JsonNode result = router.apply(input);
-
-        // Assert
-        assertTrue(result.get("success").asBoolean());
-    }
-
-    @Test
     @DisplayName("Should route to auditTrail handler")
     void testRouteToAuditTrail() {
         // Arrange
@@ -201,24 +135,6 @@ class LoanReviewRouterTest {
         ObjectNode mockResponse = objectMapper.createObjectNode();
         mockResponse.put("success", true);
         when(auditTrailHandler.apply(any())).thenReturn(mockResponse);
-
-        // Act
-        JsonNode result = router.apply(input);
-
-        // Assert
-        assertTrue(result.get("success").asBoolean());
-    }
-
-    @Test
-    @DisplayName("Should route to reclassTimerExpiration handler")
-    void testRouteToReclassTimerExpiration() {
-        // Arrange
-        ObjectNode input = objectMapper.createObjectNode();
-        input.put("handlerType", "reclassTimerExpiration");
-
-        ObjectNode mockResponse = objectMapper.createObjectNode();
-        mockResponse.put("success", true);
-        when(reclassTimerExpirationHandler.apply(any())).thenReturn(mockResponse);
 
         // Act
         JsonNode result = router.apply(input);

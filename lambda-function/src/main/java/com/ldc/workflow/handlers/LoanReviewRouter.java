@@ -38,28 +38,16 @@ public class LoanReviewRouter implements Function<JsonNode, JsonNode> {
     private ReviewTypeValidationHandler reviewTypeValidationHandler;
 
     @Autowired(required = false)
-    private AttributeValidationHandler attributeValidationHandler;
-
-    @Autowired(required = false)
     private CompletionCriteriaHandler completionCriteriaHandler;
 
     @Autowired(required = false)
     private LoanStatusDeterminationHandler loanStatusDeterminationHandler;
 
     @Autowired(required = false)
-    private EmailNotificationHandler emailNotificationHandler;
-
-    @Autowired(required = false)
     private VendPpaIntegrationHandler vendPpaIntegrationHandler;
 
     @Autowired(required = false)
-    private SqsMessageHandler sqsMessageHandler;
-
-    @Autowired(required = false)
     private AuditTrailHandler auditTrailHandler;
-
-    @Autowired(required = false)
-    private ReclassTimerExpirationHandler reclassTimerExpirationHandler;
 
     @Override
     public JsonNode apply(JsonNode input) {
@@ -71,30 +59,22 @@ public class LoanReviewRouter implements Function<JsonNode, JsonNode> {
                 case "reviewTypeValidation" ->
                     reviewTypeValidationHandler != null ? reviewTypeValidationHandler.apply(input)
                             : createNotImplementedResponse("reviewTypeValidation");
-                case "attributeValidation" ->
-                    attributeValidationHandler != null ? attributeValidationHandler.apply(input)
-                            : createNotImplementedResponse("attributeValidation");
+
                 case "completionCriteria" ->
                     completionCriteriaHandler != null ? completionCriteriaHandler.apply(input)
                             : createNotImplementedResponse("completionCriteria");
                 case "loanStatusDetermination" ->
                     loanStatusDeterminationHandler != null ? loanStatusDeterminationHandler.apply(input)
                             : createNotImplementedResponse("loanStatusDetermination");
-                case "emailNotification" ->
-                    emailNotificationHandler != null ? emailNotificationHandler.apply(input)
-                            : createNotImplementedResponse("emailNotification");
+
                 case "vendPpaIntegration" ->
                     vendPpaIntegrationHandler != null ? vendPpaIntegrationHandler.apply(input)
                             : createNotImplementedResponse("vendPpaIntegration");
-                case "sqsHandler" ->
-                    sqsMessageHandler != null ? sqsMessageHandler.apply(input)
-                            : createNotImplementedResponse("sqsHandler");
+
                 case "auditTrail" ->
                     auditTrailHandler != null ? auditTrailHandler.apply(input)
                             : createNotImplementedResponse("auditTrail");
-                case "reclassTimerExpiration" ->
-                    reclassTimerExpirationHandler != null ? reclassTimerExpirationHandler.apply(input)
-                            : createNotImplementedResponse("reclassTimerExpiration");
+
                 default -> {
                     logger.error("Unknown handler type: {}", handlerType);
                     yield createErrorResponse("Unknown handler type: " + handlerType);
