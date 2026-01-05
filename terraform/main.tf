@@ -20,24 +20,11 @@ provider "aws" {
   }
 }
 
-# DynamoDB Tables for state persistence and audit trail
-module "dynamodb" {
-  source = "./modules/dynamodb"
-
-  table_name                     = var.dynamodb_table_name
-  environment                    = var.environment
-  billing_mode                   = var.dynamodb_billing_mode
-  read_capacity                  = var.dynamodb_read_capacity
-  write_capacity                 = var.dynamodb_write_capacity
-  point_in_time_recovery_enabled = var.dynamodb_point_in_time_recovery
-}
-
-# IAM Roles and Policies
+# IAM Roles and Policies (Minimal - CloudWatch Logs and Lambda invoke only)
 module "iam" {
   source = "./modules/iam"
 
-  environment        = var.environment
-  dynamodb_table_arn = module.dynamodb.table_arn
+  environment = var.environment
 }
 
 # Lambda Function
@@ -57,8 +44,6 @@ module "lambda" {
   iam_role_arn = module.iam.lambda_role_arn
 
   environment_variables = {
-    DYNAMODB_TABLE                   = module.dynamodb.workflow_state_table_name
-    AUDIT_TABLE                      = module.dynamodb.audit_trail_table_name
     PARAMETER_STORE_PREFIX           = "/ldc-workflow"
     SPRING_CLOUD_FUNCTION_DEFINITION = "loanReviewRouter"
     MAIN_CLASS                       = "com.ldc.workflow.LambdaApplication"

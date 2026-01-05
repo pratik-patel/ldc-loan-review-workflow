@@ -1,9 +1,7 @@
 package com.ldc.workflow.types;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -39,26 +37,6 @@ public class Attribute {
 
     public void setDecision(String decision) {
         this.decision = decision;
-    }
-
-    /**
-     * Convert to DynamoDB AttributeValue (Map format).
-     */
-    public Map<String, AttributeValue> toDynamoDbItem() {
-        return Map.of(
-                "Name", AttributeValue.builder().s(name).build(),
-                "Decision", AttributeValue.builder().s(decision).build()
-        );
-    }
-
-    /**
-     * Create from DynamoDB AttributeValue (Map format).
-     */
-    public static Attribute fromDynamoDbItem(Map<String, AttributeValue> item) {
-        return new Attribute(
-                item.get("Name").s(),
-                item.get("Decision").s()
-        );
     }
 
     @Override

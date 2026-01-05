@@ -23,26 +23,6 @@ output "step_functions_state_machine_name" {
   value       = module.step_functions.state_machine_name
 }
 
-output "dynamodb_workflow_state_table_name" {
-  description = "Name of the DynamoDB WorkflowState table"
-  value       = module.dynamodb.workflow_state_table_name
-}
-
-output "dynamodb_workflow_state_table_arn" {
-  description = "ARN of the DynamoDB WorkflowState table"
-  value       = module.dynamodb.workflow_state_table_arn
-}
-
-output "dynamodb_audit_trail_table_name" {
-  description = "Name of the DynamoDB AuditTrail table"
-  value       = module.dynamodb.audit_trail_table_name
-}
-
-output "dynamodb_audit_trail_table_arn" {
-  description = "ARN of the DynamoDB AuditTrail table"
-  value       = module.dynamodb.audit_trail_table_arn
-}
-
 output "cloudwatch_lambda_log_group" {
   description = "CloudWatch log group for Lambda function"
   value       = module.cloudwatch.lambda_log_group_name

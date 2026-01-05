@@ -2,8 +2,6 @@ package com.ldc.workflow.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-
 import software.amazon.awssdk.services.ssm.SsmClient;
 
 /**
@@ -19,14 +17,6 @@ import software.amazon.awssdk.services.ssm.SsmClient;
  */
 @Configuration
 public class AwsClientConfig {
-
-    /**
-     * DynamoDB client for state persistence and audit trail.
-     */
-    @Bean
-    public DynamoDbClient dynamoDbClient() {
-        return DynamoDbClient.builder().build();
-    }
 
     /**
      * SSM (Systems Manager) client for parameter store configuration.

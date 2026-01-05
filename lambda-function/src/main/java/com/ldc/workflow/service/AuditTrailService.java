@@ -1,67 +1,44 @@
 package com.ldc.workflow.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ldc.workflow.repository.AuditTrailRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
-import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.time.Instant;
 
 /**
- * Service for logging audit trail and state transitions to DynamoDB.
+ * Service for logging audit trail and state transitions to PostgreSQL.
  * Provides compliance and debugging capabilities.
  */
 @Service
 public class AuditTrailService {
 
     private static final Logger logger = LoggerFactory.getLogger(AuditTrailService.class);
-    private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    private final DynamoDbClient dynamoDbClient;
-    private final String auditTableName;
+    private final AuditTrailRepository auditTrailRepository;
 
-    public AuditTrailService(DynamoDbClient dynamoDbClient) {
-        this.dynamoDbClient = dynamoDbClient;
-        this.auditTableName = System.getenv("AUDIT_TABLE_NAME");
-        if (this.auditTableName == null || this.auditTableName.isEmpty()) {
-            logger.warn("AUDIT_TABLE_NAME environment variable not set, audit logging will use main state table");
-        }
+    public AuditTrailService(AuditTrailRepository auditTrailRepository) {
+        this.auditTrailRepository = auditTrailRepository;
     }
 
     /**
-     * Log a state transition to DynamoDB.
+     * Log a state transition to PostgreSQL.
      */
     public void logStateTransition(String requestNumber, String loanNumber, String executionId,
                                    String stateChange, String details, String timestamp) {
         try {
-            String auditId = UUID.randomUUID().toString();
-            
-            Map<String, AttributeValue> item = new HashMap<>();
-            item.put("auditId", AttributeValue.builder().s(auditId).build());
-            item.put("requestNumber", AttributeValue.builder().s(requestNumber).build());
-            item.put("loanNumber", AttributeValue.builder().s(loanNumber).build());
-            item.put("executionId", AttributeValue.builder().s(executionId).build());
-            item.put("stateChange", AttributeValue.builder().s(stateChange).build());
-            item.put("timestamp", AttributeValue.builder().s(timestamp).build());
-            
-            if (details != null && !details.isEmpty()) {
-                item.put("details", AttributeValue.builder().s(details).build());
-            }
-
-            // Use audit table if available, otherwise use main state table
-            String tableName = auditTableName != null ? auditTableName : System.getenv("DYNAMODB_TABLE");
-            
-            PutItemRequest request = PutItemRequest.builder()
-                    .tableName(tableName)
-                    .item(item)
-                    .build();
-
-            dynamoDbClient.putItem(request);
+            auditTrailRepository.logStateTransition(
+                    requestNumber,
+                    loanNumber,
+                    executionId,
+                    stateChange,
+                    null,
+                    null,
+                    null,
+                    details,
+                    null
+            );
             
             logger.info("Audit trail logged: requestNumber={}, stateChange={}, timestamp={}", 
                     requestNumber, stateChange, timestamp);

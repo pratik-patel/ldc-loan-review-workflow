@@ -13,22 +13,9 @@ import org.springframework.context.annotation.Configuration;
 public class ApplicationConfig {
 
     private String awsRegion;
-    private DynamoDb dynamodb = new DynamoDb();
     private Sqs sqs = new Sqs();
     private Ses ses = new Ses();
     private ParameterStore parameterStore = new ParameterStore();
-
-    public static class DynamoDb {
-        private String tableName;
-
-        public String getTableName() {
-            return tableName;
-        }
-
-        public void setTableName(String tableName) {
-            this.tableName = tableName;
-        }
-    }
 
     public static class Sqs {
         private String queueUrl;
@@ -73,14 +60,6 @@ public class ApplicationConfig {
 
     public void setAwsRegion(String awsRegion) {
         this.awsRegion = awsRegion;
-    }
-
-    public DynamoDb getDynamodb() {
-        return dynamodb;
-    }
-
-    public void setDynamodb(DynamoDb dynamodb) {
-        this.dynamodb = dynamodb;
     }
 
     public Sqs getSqs() {
