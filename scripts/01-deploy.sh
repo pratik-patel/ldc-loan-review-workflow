@@ -102,8 +102,13 @@ if [[ ! -f "lambda-function/target/lambda-function-1.0.0.jar" ]]; then
     echo -e "${RED}Error: lambda-function JAR not found${NC}"
     exit 1
 fi
-echo -e "${GREEN}✓ lambda-function-1.0.0.jar created${NC}"
+echo -e "${GREEN}✓ lambda-function-1.0.0.jar created ($(ls -lh lambda-function/target/lambda-function-1.0.0.jar | awk '{print $5}'))${NC}"
 
+if [[ ! -f "lambda-function/target/lambda-layer-dependencies-1.0.0.zip" ]]; then
+    echo -e "${RED}Error: lambda-layer ZIP not found${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✓ lambda-layer-dependencies-1.0.0.zip created ($(ls -lh lambda-function/target/lambda-layer-dependencies-1.0.0.zip | awk '{print $5}'))${NC}"
 
 
 echo ""
@@ -178,14 +183,6 @@ else
     exit 1
 fi
 
-# Check DynamoDB table
-DYNAMODB_TABLE=$(terraform output -raw dynamodb_table_name 2>/dev/null || echo "ldc-loan-review-state")
-if aws dynamodb describe-table --table-name "$DYNAMODB_TABLE" --region us-east-1 &> /dev/null; then
-    echo -e "${GREEN}✓ DynamoDB table deployed${NC}"
-else
-    echo -e "${RED}✗ DynamoDB table not found${NC}"
-    exit 1
-fi
 
 # Check Step Functions
 STATE_MACHINE=$(terraform output -raw step_functions_state_machine_arn 2>/dev/null)

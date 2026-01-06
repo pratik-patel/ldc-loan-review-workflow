@@ -27,6 +27,37 @@ module "iam" {
   environment = var.environment
 }
 
+# S3 Bucket for Artifacts (Required for Lambda Layers > 50MB)
+resource "random_id" "bucket_suffix" {
+  byte_length = 4
+}
+
+resource "aws_s3_bucket" "artifacts" {
+  bucket        = "ldc-loan-review-artifacts-${var.environment}-${random_id.bucket_suffix.hex}"
+  force_destroy = true
+  
+  tags = {
+    Name        = "ldc-loan-review-artifacts"
+    Environment = var.environment
+  }
+}
+
+resource "aws_s3_bucket_versioning" "artifacts" {
+  bucket = aws_s3_bucket.artifacts.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# Upload Lambda Layer to S3
+resource "aws_s3_object" "lambda_layer" {
+  bucket = aws_s3_bucket.artifacts.id
+  key    = "layers/dependencies/lambda-layer.zip"
+  source = var.lambda_layer_zip_path
+  
+  source_hash = filemd5(var.lambda_layer_zip_path)
+}
+
 # Lambda Function
 module "lambda" {
   source = "./modules/lambda"
@@ -39,7 +70,11 @@ module "lambda" {
   timeout     = var.lambda_timeout
   memory_size = var.lambda_memory_size
 
-  code_path = var.lambda_function_code_path
+  code_path      = var.lambda_function_code_path
+  
+  layer_s3_bucket     = aws_s3_bucket.artifacts.id
+  layer_s3_key        = aws_s3_object.lambda_layer.key
+  layer_s3_version_id = aws_s3_object.lambda_layer.version_id
 
   iam_role_arn = module.iam.lambda_role_arn
 

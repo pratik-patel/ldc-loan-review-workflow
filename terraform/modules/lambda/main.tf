@@ -7,6 +7,23 @@ terraform {
   }
 }
 
+# Lambda Layer for Dependencies
+resource "aws_lambda_layer_version" "dependencies" {
+  s3_bucket         = var.layer_s3_bucket
+  s3_key            = var.layer_s3_key
+  s3_object_version = var.layer_s3_version_id
+  
+  layer_name = "${var.function_name}-dependencies"
+  
+  compatible_runtimes = [var.runtime]
+  
+  description = "Runtime dependencies for ${var.function_name}"
+  
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
 # Lambda Function
 resource "aws_lambda_function" "ldc_loan_review" {
   filename      = var.code_path
@@ -19,8 +36,8 @@ resource "aws_lambda_function" "ldc_loan_review" {
 
   source_code_hash = filebase64sha256(var.code_path)
 
-  # Attach Lambda Layers (optional)
-  layers = length(var.layer_arns) > 0 ? var.layer_arns : null
+  # Attach Lambda Layer with dependencies
+  layers = [aws_lambda_layer_version.dependencies.arn]
 
   # Environment variables
   environment {

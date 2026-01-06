@@ -46,6 +46,12 @@ variable "lambda_function_code_path" {
   default     = "../lambda-function/target/lambda-function-1.0.0.jar"
 }
 
+variable "lambda_layer_zip_path" {
+  description = "Path to Lambda layer ZIP file containing dependencies"
+  type        = string
+  default     = "../lambda-function/target/lambda-layer-dependencies-1.0.0.zip"
+}
+
 # Step Functions Configuration
 variable "step_functions_state_machine_name" {
   description = "Step Functions state machine name"

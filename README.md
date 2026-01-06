@@ -340,11 +340,14 @@ terraform apply tfplan
 
 ### Lambda Configuration
 
-The Lambda function automatically:
-1. Connects to PostgreSQL using JDBC
-2. Initializes Hibernate ORM
-3. Creates connection pool via HikariCP
-4. Validates database schema
+The Lambda function deployment automatically:
+1.  Creates a private S3 bucket for artifacts (`ldc-loan-review-artifacts-...`)
+2.  Uploads the dependencies layer (~50MB) to S3
+3.  Deploys the Lambda Layer from S3
+4.  Deploys the Lambda Function code
+5.  Connects to PostgreSQL using JDBC
+
+The deployment uses S3 for the layer artifact because the PostgreSQL dependencies increase the package size beyond the AWS Lambda direct upload limit (50MB).
 
 ## Testing
 

@@ -42,10 +42,19 @@ variable "iam_role_arn" {
   type        = string
 }
 
-variable "layer_arns" {
-  description = "List of Lambda layer ARNs"
-  type        = list(string)
-  default     = []
+variable "layer_s3_bucket" {
+  description = "S3 bucket containing the layer artifact"
+  type        = string
+}
+
+variable "layer_s3_key" {
+  description = "S3 key for the layer artifact"
+  type        = string
+}
+
+variable "layer_s3_version_id" {
+  description = "S3 object version ID for the layer artifact"
+  type        = string
 }
 
 variable "environment_variables" {
