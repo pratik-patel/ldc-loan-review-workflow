@@ -2,6 +2,7 @@ package com.ldc.workflow.handlers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ldc.workflow.repository.WorkflowStateRepository;
 import com.ldc.workflow.types.LoanPpaRequest;
 import com.ldc.workflow.types.StateTransition;
@@ -130,8 +131,11 @@ public class ReviewTypeValidationHandler implements Function<JsonNode, JsonNode>
             logger.info("Review type validated and stored successfully for RequestNumber: {}",
                     request.getRequestNumber());
 
-            // Return updated state structure (which includes history)
-            return objectMapper.valueToTree(state);
+            // Return success response with workflow state
+            ObjectNode successResponse = objectMapper.createObjectNode();
+            successResponse.put("success", true);
+            successResponse.set("state", objectMapper.valueToTree(state));
+            return successResponse;
 
         } catch (Exception e) {
             logger.error("Error in review type validation handler", e);

@@ -44,13 +44,13 @@ public class WorkflowStateRepository {
             entity.setTaskToken(state.getTaskToken());
             entity.setCurrentWorkflowStage(state.getWorkflowStateName());
             entity.setExecutionStatus(state.getStatus());
-            
+
             if (state.getAttributes() != null) {
-                entity.setAttributes(objectMapper.writeValueAsString(state.getAttributes()));
+                entity.setAttributes(objectMapper.valueToTree(state.getAttributes()));
             }
-            
+
             entity.setUpdatedAt(Instant.now());
-            
+
             jpaRepository.save(entity);
             logger.info("Saved workflow state for requestNumber: {}, loanNumber: {}",
                     state.getRequestNumber(), state.getLoanNumber());
@@ -65,7 +65,8 @@ public class WorkflowStateRepository {
      */
     public Optional<WorkflowState> findByRequestNumberAndLoanNumber(String requestNumber, String loanNumber) {
         try {
-            Optional<WorkflowStateEntity> entity = jpaRepository.findByRequestNumberAndLoanNumber(requestNumber, loanNumber);
+            Optional<WorkflowStateEntity> entity = jpaRepository.findByRequestNumberAndLoanNumber(requestNumber,
+                    loanNumber);
             if (entity.isPresent()) {
                 logger.debug("Retrieved workflow state for requestNumber: {}, loanNumber: {}",
                         requestNumber, loanNumber);
@@ -124,16 +125,16 @@ public class WorkflowStateRepository {
         state.setLoanStatus(entity.getLoanStatus());
         state.setCurrentAssignedUsername(entity.getCurrentAssignedUsername());
         state.setTaskToken(entity.getTaskToken());
-        
+
         if (entity.getAttributes() != null) {
-            List<LoanAttribute> attributes = objectMapper.readValue(entity.getAttributes(),
+            List<LoanAttribute> attributes = objectMapper.convertValue(entity.getAttributes(),
                     objectMapper.getTypeFactory().constructCollectionType(List.class, LoanAttribute.class));
             state.setAttributes(attributes);
         }
-        
+
         state.setCreatedAt(entity.getCreatedAt().toString());
         state.setUpdatedAt(entity.getUpdatedAt().toString());
-        
+
         return state;
     }
 }

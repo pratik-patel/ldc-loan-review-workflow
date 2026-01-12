@@ -2,7 +2,6 @@ package com.ldc.workflow.entity;
 
 import jakarta.persistence.*;
 import java.time.Instant;
-import java.util.List;
 
 /**
  * JPA Entity for Workflow State persistence in PostgreSQL.
@@ -57,7 +56,7 @@ public class WorkflowStateEntity {
 
     @Column(name = "attributes", columnDefinition = "jsonb")
     @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
-    private String attributes;
+    private com.fasterxml.jackson.databind.JsonNode attributes;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -176,11 +175,11 @@ public class WorkflowStateEntity {
         this.isReclassConfirmation = isReclassConfirmation;
     }
 
-    public String getAttributes() {
+    public com.fasterxml.jackson.databind.JsonNode getAttributes() {
         return attributes;
     }
 
-    public void setAttributes(String attributes) {
+    public void setAttributes(com.fasterxml.jackson.databind.JsonNode attributes) {
         this.attributes = attributes;
     }
 

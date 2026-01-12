@@ -28,10 +28,10 @@ echo "Test 1: Happy Path - Valid Review Type (LDCReview)"
 EXECUTION_NAME="test-happy-path-$(date +%s)"
 PAYLOAD=$(cat <<EOF
 {
-  "requestNumber": "REQ-HAPPY-001",
-  "loanNumber": "LOAN-HAPPY-001",
+  "requestNumber": "REQ-HAPPY-$(date +%s)",
+  "loanNumber": "1234567890",
   "reviewType": "LDCReview",
-  "currentAssignedUsername": "testuser",
+  "reviewStepUserId": "testuser",
   "attributes": [
     {"attributeName": "CreditScore", "attributeDecision": "Pending"},
     {"attributeName": "DebtRatio", "attributeDecision": "Pending"}
@@ -80,10 +80,10 @@ echo "Test 2: Invalid Review Type"
 EXECUTION_NAME="test-invalid-type-$(date +%s)"
 PAYLOAD=$(cat <<EOF
 {
-  "requestNumber": "REQ-INVALID-001",
-  "loanNumber": "LOAN-INVALID-001",
+  "requestNumber": "REQ-INVALID-$(date +%s)",
+  "loanNumber": "1234567890",
   "reviewType": "InvalidType",
-  "currentAssignedUsername": "testuser",
+  "reviewStepUserId": "testuser",
   "attributes": [],
   "executionId": "$EXECUTION_NAME"
 }
@@ -125,10 +125,10 @@ echo "Test 3: SecPolicyReview Type"
 EXECUTION_NAME="test-secpolicy-$(date +%s)"
 PAYLOAD=$(cat <<EOF
 {
-  "requestNumber": "REQ-SECPOLICY-001",
-  "loanNumber": "LOAN-SECPOLICY-001",
+  "requestNumber": "REQ-SECPOLICY-$(date +%s)",
+  "loanNumber": "1234567890",
   "reviewType": "SecPolicyReview",
-  "currentAssignedUsername": "testuser",
+  "reviewStepUserId": "testuser",
   "attributes": [
     {"attributeName": "ComplianceCheck", "attributeDecision": "Pending"}
   ],
@@ -168,10 +168,10 @@ echo "Test 4: ConduitReview Type"
 EXECUTION_NAME="test-conduit-$(date +%s)"
 PAYLOAD=$(cat <<EOF
 {
-  "requestNumber": "REQ-CONDUIT-001",
-  "loanNumber": "LOAN-CONDUIT-001",
+  "requestNumber": "REQ-CONDUIT-$(date +%s)",
+  "loanNumber": "1234567890",
   "reviewType": "ConduitReview",
-  "currentAssignedUsername": "testuser",
+  "reviewStepUserId": "testuser",
   "attributes": [
     {"attributeName": "ConduitCompliance", "attributeDecision": "Pending"}
   ],
@@ -212,10 +212,10 @@ echo "Test 5: Repurchase Request"
 EXECUTION_NAME="test-repurchase-$(date +%s)"
 PAYLOAD=$(cat <<EOF
 {
-  "requestNumber": "REQ-REPURCHASE-001",
-  "loanNumber": "LOAN-REPURCHASE-001",
+  "requestNumber": "REQ-REPURCHASE-$(date +%s)",
+  "loanNumber": "1234567890",
   "reviewType": "LDCReview",
-  "currentAssignedUsername": "testuser",
+  "reviewStepUserId": "testuser",
   "attributes": [
     {"attributeName": "CreditScore", "attributeDecision": "Pending"}
   ],
@@ -251,10 +251,10 @@ echo "Test 6: Reclass Request"
 EXECUTION_NAME="test-reclass-$(date +%s)"
 PAYLOAD=$(cat <<EOF
 {
-  "requestNumber": "REQ-RECLASS-001",
-  "loanNumber": "LOAN-RECLASS-001",
+  "requestNumber": "REQ-RECLASS-$(date +%s)",
+  "loanNumber": "1234567890",
   "reviewType": "LDCReview",
-  "currentAssignedUsername": "testuser",
+  "reviewStepUserId": "testuser",
   "attributes": [
     {"attributeName": "CreditScore", "attributeDecision": "Pending"}
   ],

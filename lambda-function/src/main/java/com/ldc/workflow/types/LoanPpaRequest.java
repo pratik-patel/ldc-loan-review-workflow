@@ -8,47 +8,47 @@ public class LoanPpaRequest {
     @JsonProperty("handlerType")
     private String handlerType;
 
-    @JsonProperty("TaskNumber")
+    @JsonProperty("taskNumber")
     private Integer taskNumber;
 
-    @JsonProperty("RequestNumber")
+    @JsonProperty("requestNumber")
     private String requestNumber;
 
-    @JsonProperty("LoanNumber")
+    @JsonProperty("loanNumber")
     private String loanNumber;
 
-    @JsonProperty("ReviewType")
+    @JsonProperty("reviewType")
     private String reviewType;
 
-    @JsonProperty("ReviewStepUserId")
+    @JsonProperty("reviewStepUserId")
     private String reviewStepUserId;
 
-    @JsonProperty("SelectionCriteria")
+    @JsonProperty("selectionCriteria")
     private SelectionCriteria selectionCriteria;
 
-    @JsonProperty("LoanDecision")
+    @JsonProperty("loanDecision")
     private String loanDecision;
 
-    @JsonProperty("Attributes")
+    @JsonProperty("attributes")
     private List<Attribute> attributes;
 
     public static class SelectionCriteria {
-        @JsonProperty("TaskNumber")
+        @JsonProperty("taskNumber")
         private Integer taskNumber;
 
-        @JsonProperty("RequestNumber")
+        @JsonProperty("requestNumber")
         private String requestNumber;
 
-        @JsonProperty("LoanNumber")
+        @JsonProperty("loanNumber")
         private String loanNumber;
 
-        @JsonProperty("WorkflowEarliestStartDateTime")
+        @JsonProperty("workflowEarliestStartDateTime")
         private String workflowEarliestStartDateTime;
 
-        @JsonProperty("ReviewStep")
+        @JsonProperty("reviewStep")
         private String reviewStep;
 
-        @JsonProperty("ReviewStepUserId")
+        @JsonProperty("reviewStepUserId")
         private String reviewStepUserId;
 
         // Getters and Setters
@@ -102,10 +102,10 @@ public class LoanPpaRequest {
     }
 
     public static class Attribute {
-        @JsonProperty("Name")
+        @JsonProperty("attributeName")
         private String name;
 
-        @JsonProperty("Decision")
+        @JsonProperty("attributeDecision")
         private String decision;
 
         // Getters and Setters
