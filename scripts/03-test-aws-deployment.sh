@@ -259,8 +259,8 @@ else
 fi
 echo ""
 
-# Test 8: DynamoDB State Persistence
-echo "Test 8: DynamoDB State Persistence"
+# Test 8: Database State Persistence
+echo "Test 8: Database State Persistence"
 PAYLOAD=$(cat <<EOF
 {
   "requestNumber": "REQ-TEST-008",
@@ -279,7 +279,7 @@ RESPONSE=$(aws lambda invoke \
   /tmp/response.json 2>&1 && cat /tmp/response.json)
 
 echo "Response: $RESPONSE"
-echo "✓ Test 8 passed (State should be persisted to DynamoDB)"
+echo "✓ Test 8 passed (State should be persisted to PostgreSQL)"
 echo ""
 
 # Test 9: Review Type - SecPolicyReview

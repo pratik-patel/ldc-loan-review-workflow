@@ -20,6 +20,17 @@ provider "aws" {
   }
 }
 
+data "aws_vpc" "default" {
+  default = true
+}
+
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+}
+
 # IAM Roles and Policies (Minimal - CloudWatch Logs and Lambda invoke only)
 module "iam" {
   source = "./modules/iam"
@@ -27,35 +38,20 @@ module "iam" {
   environment = var.environment
 }
 
-# S3 Bucket for Artifacts (Required for Lambda Layers > 50MB)
-resource "random_id" "bucket_suffix" {
-  byte_length = 4
-}
+module "database" {
+  source = "./modules/database"
 
-resource "aws_s3_bucket" "artifacts" {
-  bucket        = "ldc-loan-review-artifacts-${var.environment}-${random_id.bucket_suffix.hex}"
-  force_destroy = true
-  
-  tags = {
-    Name        = "ldc-loan-review-artifacts"
-    Environment = var.environment
-  }
-}
+  identifier = "ldc-loan-review-db-${var.environment}"
+  environment = var.environment
 
-resource "aws_s3_bucket_versioning" "artifacts" {
-  bucket = aws_s3_bucket.artifacts.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
+  vpc_id     = data.aws_vpc.default.id
+  subnet_ids = data.aws_subnets.default.ids
 
-# Upload Lambda Layer to S3
-resource "aws_s3_object" "lambda_layer" {
-  bucket = aws_s3_bucket.artifacts.id
-  key    = "layers/dependencies/lambda-layer.zip"
-  source = var.lambda_layer_zip_path
-  
-  source_hash = filemd5(var.lambda_layer_zip_path)
+  db_name  = "ldc_loan_review"
+  username = "postgres"
+  password = var.db_password
+
+  publicly_accessible = true # For testing purposes
 }
 
 # Lambda Function
@@ -70,19 +66,19 @@ module "lambda" {
   timeout     = var.lambda_timeout
   memory_size = var.lambda_memory_size
 
-  code_path      = var.lambda_function_code_path
-  
-  layer_s3_bucket     = aws_s3_bucket.artifacts.id
-  layer_s3_key        = aws_s3_object.lambda_layer.key
-  layer_s3_version_id = aws_s3_object.lambda_layer.version_id
-
+  code_path    = var.lambda_function_code_path
   iam_role_arn = module.iam.lambda_role_arn
 
   environment_variables = {
     PARAMETER_STORE_PREFIX           = "/ldc-workflow"
     SPRING_CLOUD_FUNCTION_DEFINITION = "loanReviewRouter"
     MAIN_CLASS                       = "com.ldc.workflow.LambdaApplication"
+    SPRING_PROFILES_ACTIVE           = "lambda"
   }
+
+  database_url      = "jdbc:postgresql://${module.database.endpoint}/${module.database.db_name}"
+  database_username = module.database.username
+  database_password = var.db_password
 }
 
 # Step Functions State Machine

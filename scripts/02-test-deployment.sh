@@ -9,7 +9,6 @@ set -e
 cd terraform
 LAMBDA_FUNCTION=$(terraform output -raw lambda_function_name)
 STATE_MACHINE_ARN=$(terraform output -raw step_functions_state_machine_arn)
-DYNAMODB_TABLE=$(terraform output -raw dynamodb_workflow_state_table_name)
 REGION=$(terraform output -raw aws_region 2>/dev/null || echo "us-east-1")
 cd ..
 
@@ -23,17 +22,12 @@ if [ -z "$STATE_MACHINE_ARN" ]; then
     exit 1
 fi
 
-if [ -z "$DYNAMODB_TABLE" ]; then
-    echo "Error: Could not get dynamodb_workflow_state_table_name from terraform output"
-    exit 1
-fi
 
 echo "=========================================="
 echo "LDC Loan Review Workflow - Deployment Test"
 echo "Region: $REGION"
 echo "Lambda: $LAMBDA_FUNCTION"
 echo "State Machine: $STATE_MACHINE_ARN"
-echo "DynamoDB: $DYNAMODB_TABLE"
 echo "=========================================="
 echo ""
 
@@ -143,8 +137,7 @@ EXECUTION_INPUT='{
     {"attributeName": "DebtToIncome", "attributeDecision": "Approved"},
     {"attributeName": "EmploymentHistory", "attributeDecision": "Approved"}
   ],
-  "executionId": "'$EXECUTION_NAME'",
-  "dynamoDbTableName": "'$DYNAMODB_TABLE'"
+  "executionId": "'$EXECUTION_NAME'"
 }'
 
 EXEC_ARN=$(aws stepfunctions start-execution \
@@ -182,8 +175,7 @@ EXECUTION_INPUT='{
     {"attributeName": "CreditScore", "attributeDecision": "Repurchase"},
     {"attributeName": "DebtToIncome", "attributeDecision": "Approved"}
   ],
-  "executionId": "'$EXECUTION_NAME'",
-  "dynamoDbTableName": "'$DYNAMODB_TABLE'"
+  "executionId": "'$EXECUTION_NAME'"
 }'
 
 EXEC_ARN=$(aws stepfunctions start-execution \
@@ -220,8 +212,7 @@ EXECUTION_INPUT='{
     {"attributeName": "CreditScore", "attributeDecision": "Reclass"},
     {"attributeName": "DebtToIncome", "attributeDecision": "Approved"}
   ],
-  "executionId": "'$EXECUTION_NAME'",
-  "dynamoDbTableName": "'$DYNAMODB_TABLE'"
+  "executionId": "'$EXECUTION_NAME'"
 }'
 
 EXEC_ARN=$(aws stepfunctions start-execution \
@@ -244,18 +235,6 @@ EXEC_STATUS=$(aws stepfunctions describe-execution \
 echo "  Execution status: $EXEC_STATUS"
 echo ""
 
-# Test 10: DynamoDB State Verification
-echo "Test 10: DynamoDB State Verification"
-echo "------------------------------------"
-ITEM_COUNT=$(aws dynamodb scan \
-  --table-name $DYNAMODB_TABLE \
-  --region $REGION \
-  --select COUNT \
-  --query 'Count' \
-  --output text)
-
-echo "✓ DynamoDB table contains $ITEM_COUNT items"
-echo ""
 
 # Test 11: CloudWatch Logs Verification
 echo "Test 11: CloudWatch Logs Verification"
@@ -280,7 +259,6 @@ echo "✓ Lambda function deployed and accessible"
 echo "✓ Lambda handlers responding to invocations"
 echo "✓ Step Functions state machine deployed"
 echo "✓ Step Functions executions started successfully"
-echo "✓ DynamoDB table created and accessible"
 echo "✓ CloudWatch logs configured"
 echo ""
 echo "All deployment tests completed successfully!"

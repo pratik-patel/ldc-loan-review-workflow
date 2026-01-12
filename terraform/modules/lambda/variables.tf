@@ -37,23 +37,14 @@ variable "code_path" {
   type        = string
 }
 
+variable "layer_arns" {
+  description = "ARNs of Lambda layers"
+  type        = list(string)
+  default     = []
+}
+
 variable "iam_role_arn" {
   description = "IAM role ARN for Lambda function"
-  type        = string
-}
-
-variable "layer_s3_bucket" {
-  description = "S3 bucket containing the layer artifact"
-  type        = string
-}
-
-variable "layer_s3_key" {
-  description = "S3 key for the layer artifact"
-  type        = string
-}
-
-variable "layer_s3_version_id" {
-  description = "S3 object version ID for the layer artifact"
   type        = string
 }
 
@@ -61,4 +52,20 @@ variable "environment_variables" {
   description = "Environment variables for Lambda function"
   type        = map(string)
   default     = {}
+}
+
+variable "database_url" {
+  description = "Database connection URL"
+  type        = string
+}
+
+variable "database_username" {
+  description = "Database username"
+  type        = string
+}
+
+variable "database_password" {
+  description = "Database password"
+  type        = string
+  sensitive   = true
 }

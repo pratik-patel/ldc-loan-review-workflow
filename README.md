@@ -19,19 +19,7 @@ AWS Step Functions workflow for orchestrating the complete LDC loan review proce
 - AWS CLI configured with credentials
 - Terraform 1.0+
 - AWS Account
-- PostgreSQL 12+ (for state persistence)
-
-### Database Setup
-
-Before deployment, create the PostgreSQL database and schema:
-
-```bash
-# Create database
-createdb ldc_loan_review
-
-# Create tables (see Database Schema section below)
-psql ldc_loan_review < schema.sql
-```
+- AWS RDS PostgreSQL instance (provisioned via Terraform)
 
 ### Execution
 
@@ -318,10 +306,10 @@ This project has been migrated from AWS DynamoDB to PostgreSQL. Key changes:
 ## Deployment
 
 ### Prerequisites
-1. PostgreSQL database provisioned and accessible from Lambda
-2. Database schema created (see Database Schema section)
-3. Lambda security group allows outbound access to database port (5432)
-4. Database credentials stored in AWS Secrets Manager or Parameter Store
+1. AWS Account with appropriate permissions
+2. Terraform installed (v1.0+)
+3. AWS CLI configured with credentials
+4. Database credentials will be managed by Terraform
 
 ### Terraform Deployment
 
@@ -341,11 +329,13 @@ terraform apply tfplan
 ### Lambda Configuration
 
 The Lambda function deployment automatically:
-1.  Creates a private S3 bucket for artifacts (`ldc-loan-review-artifacts-...`)
-2.  Uploads the dependencies layer (~50MB) to S3
-3.  Deploys the Lambda Layer from S3
-4.  Deploys the Lambda Function code
-5.  Connects to PostgreSQL using JDBC
+1. Creates a private S3 bucket for artifacts (`ldc-loan-review-artifacts-...`)
+2. Uploads the dependencies layer (~50MB) to S3
+3. Deploys the Lambda Layer from S3
+4. Deploys the Lambda Function code
+5. Creates RDS PostgreSQL instance
+6. Initializes database schema
+7. Connects Lambda to PostgreSQL using JDBC
 
 The deployment uses S3 for the layer artifact because the PostgreSQL dependencies increase the package size beyond the AWS Lambda direct upload limit (50MB).
 
@@ -490,36 +480,17 @@ Before deploying, ensure you have:
 - ✅ AWS Account with appropriate permissions
 - ✅ AWS CLI configured with credentials (`aws configure`)
 - ✅ Terraform installed (v1.0+)
-- ✅ PostgreSQL database provisioned and accessible
-- ✅ Database schema created (`psql ldc_loan_review < schema.sql`)
 - ✅ Lambda JAR built (`mvn clean package -DskipTests`)
 
-### Step 1: Prepare PostgreSQL Database
+### Step 1: Build Lambda JAR
 
 ```bash
-# Create database
-createdb ldc_loan_review
-
-# Create schema and tables
-psql ldc_loan_review < schema.sql
-
-# Verify tables created
-psql ldc_loan_review -c "\dt"
+cd lambda-function
+mvn clean package -DskipTests
+cd ..
 ```
 
-### Step 2: Set Environment Variables
-
-```bash
-# Set AWS region
-export AWS_REGION=us-east-1
-
-# Set database credentials (used by Lambda)
-export DATABASE_URL="jdbc:postgresql://[HOST]:[PORT]/ldc_loan_review"
-export DATABASE_USER="[USERNAME]"
-export DATABASE_PASSWORD="[PASSWORD]"
-```
-
-### Step 3: Deploy with Terraform
+### Step 2: Deploy with Terraform
 
 ```bash
 cd terraform
@@ -528,13 +499,13 @@ cd terraform
 terraform init
 
 # Plan deployment
-terraform plan -var="environment=dev" -out=tfplan
+terraform plan -out=tfplan
 
 # Review the plan output, then apply
 terraform apply tfplan
 ```
 
-### Step 4: Verify Deployment
+### Step 3: Verify Deployment
 
 ```bash
 # Check Lambda function created
@@ -543,11 +514,14 @@ aws lambda get-function --function-name ldc-loan-review-lambda
 # Check Step Functions state machine created
 aws stepfunctions list-state-machines
 
+# Check RDS PostgreSQL instance created
+aws rds describe-db-instances --db-instance-identifier ldc-loan-review-db-dev
+
 # Check CloudWatch logs
 aws logs tail /aws/lambda/ldc-loan-review-lambda --follow
 ```
 
-### Step 5: Test Workflow
+### Step 4: Test Workflow
 
 ```bash
 # Start a test execution
@@ -567,8 +541,8 @@ If deployment fails or needs to be rolled back:
 ```bash
 cd terraform
 
-# Destroy all resources
-terraform destroy -var="environment=dev"
+# Destroy all resources (including RDS instance)
+terraform destroy
 
 # Confirm destruction when prompted
 ```
@@ -583,7 +557,10 @@ terraform destroy -var="environment=dev"
 - Verify JAR exists: `ls -lh lambda-function/target/lambda-function-1.0.0-aws.jar`
 - Check IAM permissions for Lambda creation
 
-**Database Connection Fails**
+**RDS Instance Creation Fails**
+- Verify AWS account has RDS permissions
+- Check VPC and subnet configuration
+- Review Terraform logs for specific errors
 - Verify PostgreSQL is running and accessible
 - Check database credentials
 - Verify security group allows Lambda to connect to database port (5432)

@@ -9,9 +9,9 @@ import java.util.List;
  */
 @Entity
 @Table(name = "workflow_state", indexes = {
-    @Index(name = "idx_request_loan", columnList = "request_number,loan_number", unique = true),
-    @Index(name = "idx_loan_number", columnList = "loan_number"),
-    @Index(name = "idx_created_at", columnList = "created_at")
+        @Index(name = "idx_request_loan", columnList = "request_number,loan_number", unique = true),
+        @Index(name = "idx_loan_number", columnList = "loan_number"),
+        @Index(name = "idx_created_at", columnList = "created_at")
 })
 public class WorkflowStateEntity {
 
@@ -56,6 +56,7 @@ public class WorkflowStateEntity {
     private Boolean isReclassConfirmation;
 
     @Column(name = "attributes", columnDefinition = "jsonb")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     private String attributes;
 
     @Column(name = "created_at", nullable = false, updatable = false)

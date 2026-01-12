@@ -4,7 +4,6 @@ set -e
 # Configuration
 REGION="us-east-1"
 STATE_MACHINE_ARN=$(terraform -chdir=terraform output -raw step_functions_state_machine_arn 2>/dev/null || echo "arn:aws:states:us-east-1:851725256415:stateMachine:ldc-loan-review-workflow")
-DYNAMODB_TABLE=$(terraform -chdir=terraform output -raw dynamodb_table_name 2>/dev/null || echo "ldc-loan-review-state")
 LAMBDA_FUNCTION=$(terraform -chdir=terraform output -raw lambda_function_name 2>/dev/null || echo "ldc-loan-review-lambda")
 
 REQUEST_NUMBER="REQ-SIM-$(date +%s)"
@@ -15,7 +14,6 @@ echo "=========================================="
 echo "LDC Loan Review Workflow - E2E Simulation"
 echo "Region: $REGION"
 echo "State Machine: $STATE_MACHINE_ARN"
-echo "DynamoDB Table: $DYNAMODB_TABLE"
 echo "Request: $REQUEST_NUMBER / $LOAN_NUMBER"
 echo "=========================================="
 
@@ -95,27 +93,36 @@ if [ "$REACHED_WAIT_STATE" = false ]; then
 fi
 
 echo "3. API Simulation: Submitting Loan Decision (User Input)..."
-echo "   Updating attributes to 'Approved in DynamoDB..."
+echo "   Updating attributes to 'Approved' in PostgreSQL..."
 
-# Construct update expression to set attributes decisions to Approved
-# Note: In a real app, this would be done via API triggering the Lambda
-# Since the API is just another Lambda invocation, we can invoke Lambda or update DB directly.
-# The user asked to "simulate user input by triggering apis".
-# However, no specific handler currently exists for updating attributes, so simulating via DB update.
+# In a real app, this would be done via API triggering the Lambda
+# Since the API is just another Lambda invocation, we can invoke Lambda directly
+# to simulate the user submitting their decision
 
-echo "   Updating DynamoDB item directly to simulate 'Approved' decision..."
+echo "   Invoking Lambda to simulate decision submission..."
 
-aws dynamodb update-item \
-    --table-name "$DYNAMODB_TABLE" \
-    --key "{\"RequestNumber\":{\"S\":\"$REQUEST_NUMBER\"},\"LoanNumber\":{\"S\":\"$LOAN_NUMBER\"}}" \
-    --update-expression "SET Attributes = :attrs, LoanDecision = :decision" \
-    --expression-attribute-values '{
-        ":attrs": {"S": "[{\"attributeName\":\"CreditScore\",\"attributeDecision\":\"Approved\"},{\"attributeName\":\"DebtRatio\",\"attributeDecision\":\"Approved\"}]"},
-        ":decision": {"S": "Approved"}
-    }' \
-    --region "$REGION"
+DECISION_PAYLOAD=$(cat <<EOF
+{
+  "handlerType": "loanDecisionUpdateApi",
+  "requestNumber": "$REQUEST_NUMBER",
+  "loanNumber": "$LOAN_NUMBER",
+  "loanDecision": "Approved",
+  "attributes": [
+    {"attributeName": "CreditScore", "attributeDecision": "Approved"},
+    {"attributeName": "DebtRatio", "attributeDecision": "Approved"}
+  ]
+}
+EOF
+)
 
-echo "   Response: DynamoDB Updated Successfully"
+aws lambda invoke \
+  --function-name "$LAMBDA_FUNCTION" \
+  --region "$REGION" \
+  --payload "$DECISION_PAYLOAD" \
+  --cli-binary-format raw-in-base64-out \
+  /tmp/decision-response.json
+
+echo "   Response: Lambda invoked successfully"
 
 echo "4. Monitoring for Completion..."
 # Poll for success

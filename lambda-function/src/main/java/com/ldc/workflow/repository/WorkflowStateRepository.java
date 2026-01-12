@@ -42,6 +42,8 @@ public class WorkflowStateRepository {
             entity.setLoanStatus(state.getLoanStatus());
             entity.setCurrentAssignedUsername(state.getCurrentAssignedUsername());
             entity.setTaskToken(state.getTaskToken());
+            entity.setCurrentWorkflowStage(state.getWorkflowStateName());
+            entity.setExecutionStatus(state.getStatus());
             
             if (state.getAttributes() != null) {
                 entity.setAttributes(objectMapper.writeValueAsString(state.getAttributes()));

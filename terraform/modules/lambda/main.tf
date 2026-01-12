@@ -4,29 +4,33 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
-# Lambda Layer for Dependencies
-resource "aws_lambda_layer_version" "dependencies" {
-  s3_bucket         = var.layer_s3_bucket
-  s3_key            = var.layer_s3_key
-  s3_object_version = var.layer_s3_version_id
-  
-  layer_name = "${var.function_name}-dependencies"
-  
-  compatible_runtimes = [var.runtime]
-  
-  description = "Runtime dependencies for ${var.function_name}"
-  
-  lifecycle {
-    create_before_destroy = true
-  }
+resource "random_id" "bucket_suffix" {
+  byte_length = 8
+}
+
+resource "aws_s3_bucket" "lambda_artifacts" {
+  bucket = "ldc-loan-review-artifacts-${var.environment}-${random_id.bucket_suffix.hex}"
+  force_destroy = true
+}
+
+resource "aws_s3_object" "lambda_code" {
+  bucket = aws_s3_bucket.lambda_artifacts.id
+  key    = "lambda-function-${filemd5(var.code_path)}.jar"
+  source = var.code_path
+  etag   = filemd5(var.code_path)
 }
 
 # Lambda Function
 resource "aws_lambda_function" "ldc_loan_review" {
-  filename      = var.code_path
+  s3_bucket     = aws_s3_bucket.lambda_artifacts.id
+  s3_key        = aws_s3_object.lambda_code.key
   function_name = var.function_name
   role          = var.iam_role_arn
   handler       = var.handler
@@ -36,12 +40,16 @@ resource "aws_lambda_function" "ldc_loan_review" {
 
   source_code_hash = filebase64sha256(var.code_path)
 
-  # Attach Lambda Layer with dependencies
-  layers = [aws_lambda_layer_version.dependencies.arn]
+  # Attach Lambda Layers (optional)
+  layers = length(var.layer_arns) > 0 ? var.layer_arns : null
 
   # Environment variables
   environment {
-    variables = var.environment_variables
+    variables = merge(var.environment_variables, {
+      DATABASE_URL      = var.database_url
+      DATABASE_USER     = var.database_username
+      DATABASE_PASSWORD = var.database_password
+    })
   }
 
   # Logging

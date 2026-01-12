@@ -43,13 +43,7 @@ variable "lambda_memory_size" {
 variable "lambda_function_code_path" {
   description = "Path to Lambda function code JAR"
   type        = string
-  default     = "../lambda-function/target/lambda-function-1.0.0.jar"
-}
-
-variable "lambda_layer_zip_path" {
-  description = "Path to Lambda layer ZIP file containing dependencies"
-  type        = string
-  default     = "../lambda-function/target/lambda-layer-dependencies-1.0.0.zip"
+  default     = "../lambda-function/target/lambda-function-1.0.0-shaded.jar"
 }
 
 # Step Functions Configuration
@@ -163,4 +157,10 @@ variable "parameter_store_prefix" {
   description = "Prefix for all Parameter Store parameters"
   type        = string
   default     = "ldc-workflow"
+}
+
+variable "db_password" {
+  description = "Password for the RDS database"
+  type        = string
+  sensitive   = true
 }

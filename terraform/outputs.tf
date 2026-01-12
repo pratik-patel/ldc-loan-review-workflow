@@ -37,3 +37,18 @@ output "parameter_store_prefix" {
   description = "Parameter Store prefix for all configuration parameters"
   value       = var.parameter_store_prefix
 }
+
+output "database_endpoint" {
+  description = "RDS Endpoint"
+  value       = module.database.endpoint
+}
+
+output "database_username" {
+  description = "Database Master Username"
+  value       = module.database.username
+}
+
+output "aws_region" {
+  description = "AWS Region"
+  value       = var.aws_region
+}

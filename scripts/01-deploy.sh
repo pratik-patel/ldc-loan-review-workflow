@@ -98,17 +98,11 @@ else
 fi
 
 # Verify build artifacts
-if [[ ! -f "lambda-function/target/lambda-function-1.0.0.jar" ]]; then
-    echo -e "${RED}Error: lambda-function JAR not found${NC}"
+if [[ ! -f "lambda-function/target/lambda-function-1.0.0-shaded.jar" ]]; then
+    echo -e "${RED}Error: lambda-function SHADED JAR not found${NC}"
     exit 1
 fi
-echo -e "${GREEN}✓ lambda-function-1.0.0.jar created ($(ls -lh lambda-function/target/lambda-function-1.0.0.jar | awk '{print $5}'))${NC}"
-
-if [[ ! -f "lambda-function/target/lambda-layer-dependencies-1.0.0.zip" ]]; then
-    echo -e "${RED}Error: lambda-layer ZIP not found${NC}"
-    exit 1
-fi
-echo -e "${GREEN}✓ lambda-layer-dependencies-1.0.0.zip created ($(ls -lh lambda-function/target/lambda-layer-dependencies-1.0.0.zip | awk '{print $5}'))${NC}"
+echo -e "${GREEN}✓ lambda-function-1.0.0-shaded.jar created ($(ls -lh lambda-function/target/lambda-function-1.0.0-shaded.jar | awk '{print $5}'))${NC}"
 
 
 echo ""

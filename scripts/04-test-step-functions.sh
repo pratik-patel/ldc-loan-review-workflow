@@ -9,20 +9,12 @@ set -e
 cd terraform
 STATE_MACHINE_ARN=$(terraform output -raw step_functions_state_machine_arn)
 AWS_REGION=$(terraform output -raw aws_region 2>/dev/null || echo "us-east-1")
-DYNAMODB_TABLE_NAME=$(terraform output -raw dynamodb_workflow_state_table_name)
 cd ..
 
 if [ -z "$STATE_MACHINE_ARN" ]; then
     echo "Error: Could not get step_functions_state_machine_arn from terraform output"
     exit 1
 fi
-
-if [ -z "$DYNAMODB_TABLE_NAME" ]; then
-    echo "Error: Could not get dynamodb_workflow_state_table_name from terraform output"
-    exit 1
-fi
-
-echo "Using DynamoDB Table: $DYNAMODB_TABLE_NAME"
 
 echo "=========================================="
 echo "LDC Loan Review Workflow - Step Functions Test Suite"
@@ -40,7 +32,6 @@ PAYLOAD=$(cat <<EOF
   "loanNumber": "LOAN-HAPPY-001",
   "reviewType": "LDCReview",
   "currentAssignedUsername": "testuser",
-  "dynamoDbTableName": "$DYNAMODB_TABLE_NAME",
   "attributes": [
     {"attributeName": "CreditScore", "attributeDecision": "Pending"},
     {"attributeName": "DebtRatio", "attributeDecision": "Pending"}
@@ -93,7 +84,6 @@ PAYLOAD=$(cat <<EOF
   "loanNumber": "LOAN-INVALID-001",
   "reviewType": "InvalidType",
   "currentAssignedUsername": "testuser",
-  "dynamoDbTableName": "$DYNAMODB_TABLE_NAME",
   "attributes": [],
   "executionId": "$EXECUTION_NAME"
 }
@@ -139,7 +129,6 @@ PAYLOAD=$(cat <<EOF
   "loanNumber": "LOAN-SECPOLICY-001",
   "reviewType": "SecPolicyReview",
   "currentAssignedUsername": "testuser",
-  "dynamoDbTableName": "$DYNAMODB_TABLE_NAME",
   "attributes": [
     {"attributeName": "ComplianceCheck", "attributeDecision": "Pending"}
   ],
@@ -183,7 +172,6 @@ PAYLOAD=$(cat <<EOF
   "loanNumber": "LOAN-CONDUIT-001",
   "reviewType": "ConduitReview",
   "currentAssignedUsername": "testuser",
-  "dynamoDbTableName": "$DYNAMODB_TABLE_NAME",
   "attributes": [
     {"attributeName": "ConduitCompliance", "attributeDecision": "Pending"}
   ],
@@ -228,7 +216,6 @@ PAYLOAD=$(cat <<EOF
   "loanNumber": "LOAN-REPURCHASE-001",
   "reviewType": "LDCReview",
   "currentAssignedUsername": "testuser",
-  "dynamoDbTableName": "$DYNAMODB_TABLE_NAME",
   "attributes": [
     {"attributeName": "CreditScore", "attributeDecision": "Pending"}
   ],
@@ -268,7 +255,6 @@ PAYLOAD=$(cat <<EOF
   "loanNumber": "LOAN-RECLASS-001",
   "reviewType": "LDCReview",
   "currentAssignedUsername": "testuser",
-  "dynamoDbTableName": "$DYNAMODB_TABLE_NAME",
   "attributes": [
     {"attributeName": "CreditScore", "attributeDecision": "Pending"}
   ],
