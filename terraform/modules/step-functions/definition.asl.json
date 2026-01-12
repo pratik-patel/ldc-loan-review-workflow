@@ -9,11 +9,11 @@
         "FunctionName": "${lambda_function_name}",
         "Payload": {
           "handlerType": "reviewTypeValidation",
-          "RequestNumber.$": "$.RequestNumber",
-          "LoanNumber.$": "$.LoanNumber",
-          "ReviewType.$": "$.ReviewType",
-          "ReviewStepUserId.$": "$.ReviewStepUserId",
-          "Attributes.$": "$.Attributes"
+          "requestNumber.$": "$.requestNumber",
+          "loanNumber.$": "$.loanNumber",
+          "reviewType.$": "$.reviewType",
+          "reviewStepUserId.$": "$.reviewStepUserId",
+          "attributes.$": "$.attributes"
         }
       },
       "ResultPath": "$.validationResult",
@@ -55,8 +55,8 @@
         "FunctionName": "${lambda_function_name}",
         "Payload": {
           "handlerType": "completionCriteria",
-          "requestNumber.$": "$.RequestNumber",
-          "loanNumber.$": "$.LoanNumber"
+          "requestNumber.$": "$.requestNumber",
+          "loanNumber.$": "$.loanNumber"
         }
       },
       "ResultPath": "$.completionResult",
@@ -93,8 +93,8 @@
         "FunctionName": "${lambda_function_name}",
         "Payload": {
           "handlerType": "loanStatusDetermination",
-          "requestNumber.$": "$.RequestNumber",
-          "loanNumber.$": "$.LoanNumber"
+          "requestNumber.$": "$.requestNumber",
+          "loanNumber.$": "$.loanNumber"
         }
       },
       "ResultPath": "$.statusResult",
@@ -159,8 +159,8 @@
         "FunctionName": "${lambda_function_name}",
         "Payload": {
           "handlerType": "loanStatusDetermination",
-          "requestNumber.$": "$.RequestNumber",
-          "loanNumber.$": "$.LoanNumber"
+          "requestNumber.$": "$.requestNumber",
+          "loanNumber.$": "$.loanNumber"
         }
       },
       "ResultPath": "$.statusResult",
@@ -200,8 +200,8 @@
         "FunctionName": "${lambda_function_name}",
         "Payload": {
           "handlerType": "vendPpaIntegration",
-          "requestNumber.$": "$.RequestNumber",
-          "loanNumber.$": "$.LoanNumber",
+          "requestNumber.$": "$.requestNumber",
+          "loanNumber.$": "$.loanNumber",
           "loanStatus.$": "$.statusResult.Payload.status"
         }
       },
@@ -239,8 +239,8 @@
         "FunctionName": "${lambda_function_name}",
         "Payload": {
           "handlerType": "auditTrail",
-          "requestNumber.$": "$.RequestNumber",
-          "loanNumber.$": "$.LoanNumber",
+          "requestNumber.$": "$.requestNumber",
+          "loanNumber.$": "$.loanNumber",
           "stateChange": "WorkflowCompleted"
         }
       },
