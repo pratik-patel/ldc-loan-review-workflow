@@ -49,6 +49,12 @@ public class LoanReviewRouter implements Function<JsonNode, JsonNode> {
     @Autowired(required = false)
     private AuditTrailHandler auditTrailHandler;
 
+    @Autowired(required = false)
+    private RegisterCallbackHandler registerCallbackHandler;
+
+    @Autowired(required = false)
+    private UpdateLoanHandler updateLoanHandler;
+
     @Override
     public JsonNode apply(JsonNode input) {
         try {
@@ -74,6 +80,14 @@ public class LoanReviewRouter implements Function<JsonNode, JsonNode> {
                 case "auditTrail" ->
                     auditTrailHandler != null ? auditTrailHandler.apply(input)
                             : createNotImplementedResponse("auditTrail");
+
+                case "registerCallback" ->
+                    registerCallbackHandler != null ? registerCallbackHandler.apply(input)
+                            : createNotImplementedResponse("registerCallback");
+
+                case "updateLoan" ->
+                    updateLoanHandler != null ? updateLoanHandler.apply(input)
+                            : createNotImplementedResponse("updateLoan");
 
                 default -> {
                     logger.error("Unknown handler type: {}", handlerType);

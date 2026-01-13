@@ -34,7 +34,16 @@ public class WorkflowStateRepository {
      */
     public void save(WorkflowState state) {
         try {
-            WorkflowStateEntity entity = new WorkflowStateEntity();
+            WorkflowStateEntity entity;
+            Optional<WorkflowStateEntity> existingOpt = jpaRepository.findByRequestNumberAndLoanNumber(
+                    state.getRequestNumber(), state.getLoanNumber());
+
+            if (existingOpt.isPresent()) {
+                entity = existingOpt.get();
+            } else {
+                entity = new WorkflowStateEntity();
+            }
+
             entity.setRequestNumber(state.getRequestNumber());
             entity.setLoanNumber(state.getLoanNumber());
             entity.setReviewType(state.getReviewType());

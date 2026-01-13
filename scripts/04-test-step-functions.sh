@@ -9,6 +9,7 @@ set -e
 cd terraform
 STATE_MACHINE_ARN=$(terraform output -raw step_functions_state_machine_arn)
 AWS_REGION=$(terraform output -raw aws_region 2>/dev/null || echo "us-east-1")
+LAMBDA_FUNCTION_NAME=$(terraform output -raw lambda_function_name 2>/dev/null || echo "ldc-loan-review-lambda")
 cd ..
 
 if [ -z "$STATE_MACHINE_ARN" ]; then
@@ -25,10 +26,11 @@ echo ""
 
 # Test 1: Happy Path - Valid Review Type
 echo "Test 1: Happy Path - Valid Review Type (LDCReview)"
-EXECUTION_NAME="test-happy-path-$(date +%s)"
+DATE_SUFFIX=$(date +%s)
+EXECUTION_NAME="test-happy-path-$DATE_SUFFIX"
 PAYLOAD=$(cat <<EOF
 {
-  "requestNumber": "REQ-HAPPY-$(date +%s)",
+  "requestNumber": "REQ-HAPPY-$DATE_SUFFIX",
   "loanNumber": "1234567890",
   "reviewType": "LDCReview",
   "reviewStepUserId": "testuser",
@@ -52,23 +54,76 @@ EXECUTION_ARN=$(echo "$EXECUTION_RESPONSE" | grep -o '"executionArn": "[^"]*' | 
 if [ -n "$EXECUTION_ARN" ]; then
   echo "✓ Execution started: $EXECUTION_ARN"
   
-  # Wait for execution to progress
-  sleep 3
+  # Wait for execution to pause at Task Token
+  echo "  Waiting for workflow to reach callback state..."
+  sleep 5
   
-  # Get execution history
-  HISTORY=$(aws stepfunctions get-execution-history \
-    --execution-arn "$EXECUTION_ARN" \
-    --region "$AWS_REGION" 2>&1)
+  # SIMULATE USER ACTION: Update Loan to "Approved"
+  echo "  Simulating User Action: Updating Loan to Approved..."
+  UPDATE_PAYLOAD=$(cat <<EOF
+{
+  "handlerType": "updateLoan",
+  "requestNumber": "REQ-HAPPY-${DATE_SUFFIX}",
+  "loanNumber": "1234567890",
+  "loanDecision": "Approved",
+  "attributes": [
+    {"attributeName": "CreditScore", "attributeDecision": "Approved"},
+    {"attributeName": "DebtRatio", "attributeDecision": "Approved"}
+  ]
+}
+EOF
+)
   
-  EVENT_COUNT=$(echo "$HISTORY" | grep -o '"type"' | wc -l)
-  echo "✓ Execution progressed with $EVENT_COUNT events"
+  # Invoke Lambda to update DB and get Token - Retry Loop
+  MAX_RETRIES=5
+  RETRY_COUNT=0
+  TASK_TOKEN=""
   
-  # Check for failures
-  if echo "$HISTORY" | grep -q "ExecutionFailed"; then
-    echo "⚠ Execution failed"
-    echo "$HISTORY" | jq '.events[] | select(.executionFailedEventDetails != null) | .executionFailedEventDetails'
+  while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+      aws lambda invoke \
+        --function-name "$LAMBDA_FUNCTION_NAME" \
+        --payload "$(echo "$UPDATE_PAYLOAD" | base64)" \
+        --region "$AWS_REGION" \
+        update_response.json > /dev/null
+        
+      TASK_TOKEN=$(cat update_response.json | jq -r '.taskToken')
+      ERROR_MSG=$(cat update_response.json | jq -r '.error')
+      
+      if [ -n "$TASK_TOKEN" ] && [ "$TASK_TOKEN" != "null" ]; then
+          break
+      fi
+      
+      echo "  Attempt $((RETRY_COUNT+1)): Token not found ($ERROR_MSG). Retrying in 5s..."
+      sleep 5
+      RETRY_COUNT=$((RETRY_COUNT+1))
+  done
+    
+  if [ -n "$TASK_TOKEN" ] && [ "$TASK_TOKEN" != "null" ]; then
+      echo "✓ Retrieved Task Token: ${TASK_TOKEN:0:20}..."
+      
+      # Resume Workflow
+      echo "  Triggering API (SendTaskSuccess)..."
+      aws stepfunctions send-task-success \
+        --task-token "$TASK_TOKEN" \
+        --task-output '{"success": true}' \
+        --region "$AWS_REGION"
+        
+      echo "✓ API Triggered. Waiting for completion..."
+      sleep 5
+      
+      # Verify Completion
+      HISTORY=$(aws stepfunctions get-execution-history \
+        --execution-arn "$EXECUTION_ARN" \
+        --region "$AWS_REGION" 2>&1)
+      
+      if echo "$HISTORY" | grep -q "ExecutionSucceeded"; then
+         echo "✓ Workflow Completed Successfully!"
+      else
+         echo "⚠ Workflow did not complete yet (or failed)."
+      fi
   else
-    echo "✓ No execution failures detected"
+      echo "✗ Failed to retrieve Task Token. Update response:"
+      cat update_response.json
   fi
 else
   echo "⚠ Failed to start execution"

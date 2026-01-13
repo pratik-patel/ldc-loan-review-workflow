@@ -38,53 +38,47 @@ public class CompletionCriteriaHandler implements Function<JsonNode, JsonNode> {
 
     @Override
     public JsonNode apply(JsonNode input) {
-        try {
-            logger.info("Completion Criteria handler invoked");
+        logger.info("Completion Criteria handler invoked");
 
-            // Extract input fields
-            String requestNumber = input.get("requestNumber").asText("unknown");
-            String loanNumber = input.get("loanNumber").asText("unknown");
-            String executionId = input.has("executionId") ? input.get("executionId").asText()
-                    : "ldc-loan-review-" + requestNumber;
+        // Extract input fields
+        String requestNumber = input.get("requestNumber").asText("unknown");
+        String loanNumber = input.get("loanNumber").asText("unknown");
+        String executionId = input.has("executionId") ? input.get("executionId").asText()
+                : "ldc-loan-review-" + requestNumber;
 
-            logger.debug("Checking completion criteria for requestNumber: {}, loanNumber: {}",
-                    requestNumber, loanNumber);
+        logger.debug("Checking completion criteria for requestNumber: {}, loanNumber: {}",
+                requestNumber, loanNumber);
 
-            // Fetch from DynamoDB
-            java.util.Optional<com.ldc.workflow.types.WorkflowState> stateOpt = workflowStateRepository
-                    .findByRequestNumberAndLoanNumber(requestNumber, loanNumber);
+        // Fetch from DynamoDB
+        java.util.Optional<com.ldc.workflow.types.WorkflowState> stateOpt = workflowStateRepository
+                .findByRequestNumberAndLoanNumber(requestNumber, loanNumber);
 
-            if (stateOpt.isEmpty()) {
-                logger.warn("Workflow state not found for completion check. Request: {}", requestNumber);
-                // If state not found, we can't be complete.
-                return createSuccessResponse(requestNumber, loanNumber, false, "Workflow state not found");
-            }
+        if (stateOpt.isEmpty()) {
+            logger.warn("Workflow state not found for completion check. Request: {}", requestNumber);
+            // If state not found, we can't be complete.
+            return createSuccessResponse(requestNumber, loanNumber, false, "Workflow state not found");
+        }
 
-            com.ldc.workflow.types.WorkflowState state = stateOpt.get();
-            String loanDecision = state.getLoanDecision();
-            List<LoanAttribute> attributes = state.getAttributes();
-            if (attributes == null) {
-                attributes = new ArrayList<>();
-            }
+        com.ldc.workflow.types.WorkflowState state = stateOpt.get();
+        String loanDecision = state.getLoanDecision();
+        List<LoanAttribute> attributes = state.getAttributes();
+        if (attributes == null) {
+            attributes = new ArrayList<>();
+        }
 
-            // Check completion criteria
-            boolean isComplete = completionCriteriaChecker.isLoanDecisionComplete(
+        // Check completion criteria
+        boolean isComplete = completionCriteriaChecker.isLoanDecisionComplete(
+                loanDecision, attributes);
+
+        logger.info("Loan decision completion status: {} for requestNumber: {}",
+                isComplete, requestNumber);
+
+        if (isComplete) {
+            return createSuccessResponse(requestNumber, loanNumber, true, null);
+        } else {
+            String reason = completionCriteriaChecker.getIncompleteReason(
                     loanDecision, attributes);
-
-            logger.info("Loan decision completion status: {} for requestNumber: {}",
-                    isComplete, requestNumber);
-
-            if (isComplete) {
-                return createSuccessResponse(requestNumber, loanNumber, true, null);
-            } else {
-                String reason = completionCriteriaChecker.getIncompleteReason(
-                        loanDecision, attributes);
-                return createSuccessResponse(requestNumber, loanNumber, false, reason);
-            }
-        } catch (Exception e) {
-            logger.error("Error in completion criteria handler", e);
-            return createErrorResponse("unknown", "unknown",
-                    "Internal error: " + e.getMessage());
+            return createSuccessResponse(requestNumber, loanNumber, false, reason);
         }
     }
 
@@ -103,11 +97,4 @@ public class CompletionCriteriaHandler implements Function<JsonNode, JsonNode> {
         return response;
     }
 
-    private JsonNode createErrorResponse(String requestNumber, String loanNumber, String error) {
-        return objectMapper.createObjectNode()
-                .put("success", false)
-                .put("requestNumber", requestNumber)
-                .put("loanNumber", loanNumber)
-                .put("error", error);
-    }
 }

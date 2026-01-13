@@ -44,8 +44,18 @@
       "Cause": "Review type validation failed"
     },
     "WaitForLoanDecision": {
-      "Type": "Wait",
-      "Seconds": 5,
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
+      "Parameters": {
+        "FunctionName": "${lambda_function_name}",
+        "Payload": {
+          "handlerType": "registerCallback",
+          "requestNumber.$": "$.requestNumber",
+          "loanNumber.$": "$.loanNumber",
+          "taskToken.$": "$$.Task.Token"
+        }
+      },
+      "ResultPath": "$.loanDecisionResult",
       "Next": "CheckCompletionCriteria"
     },
     "CheckCompletionCriteria": {
