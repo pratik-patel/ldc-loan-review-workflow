@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ldc.workflow.business.LoanStatusDeterminer;
 import com.ldc.workflow.types.LoanAttribute;
+import com.ldc.workflow.repository.WorkflowStateRepository;
+import com.ldc.workflow.constants.WorkflowConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -26,10 +28,10 @@ public class LoanStatusDeterminationHandler implements Function<JsonNode, JsonNo
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private final LoanStatusDeterminer loanStatusDeterminer;
-    private final com.ldc.workflow.repository.WorkflowStateRepository workflowStateRepository;
+    private final WorkflowStateRepository workflowStateRepository;
 
     public LoanStatusDeterminationHandler(LoanStatusDeterminer loanStatusDeterminer,
-            com.ldc.workflow.repository.WorkflowStateRepository workflowStateRepository) {
+            WorkflowStateRepository workflowStateRepository) {
         this.loanStatusDeterminer = loanStatusDeterminer;
         this.workflowStateRepository = workflowStateRepository;
     }
@@ -39,10 +41,15 @@ public class LoanStatusDeterminationHandler implements Function<JsonNode, JsonNo
         try {
             logger.info("Loan Status Determination handler invoked");
 
+            // Convert JsonNode to WorkflowContext
+            com.ldc.workflow.types.WorkflowContext context = objectMapper.treeToValue(input,
+                    com.ldc.workflow.types.WorkflowContext.class);
+
             // Extract input fields
-            String requestNumber = input.get("requestNumber").asText("unknown");
-            String loanNumber = input.get("loanNumber").asText("unknown");
-            String executionId = input.has("executionId") ? input.get("executionId").asText()
+            String requestNumber = context.getRequestNumber() != null ? context.getRequestNumber() : "unknown";
+            String loanNumber = context.getLoanNumber() != null ? context.getLoanNumber() : "unknown";
+            // ExecutionId is optional
+            String executionId = context.getExecutionId() != null ? context.getExecutionId()
                     : "ldc-loan-review-" + requestNumber;
 
             logger.debug("Determining loan status for requestNumber: {}, loanNumber: {}",
@@ -80,19 +87,19 @@ public class LoanStatusDeterminationHandler implements Function<JsonNode, JsonNo
     private List<LoanAttribute> extractAttributes(JsonNode input) {
         List<LoanAttribute> attributes = new ArrayList<>();
 
-        if (!input.has("attributes") || input.get("attributes").isNull()) {
+        if (!input.has("Attributes") || input.get("Attributes").isNull()) {
             return attributes;
         }
 
-        JsonNode attributesNode = input.get("attributes");
+        JsonNode attributesNode = input.get("Attributes");
         if (!attributesNode.isArray()) {
             return attributes;
         }
 
         for (JsonNode attrNode : attributesNode) {
-            String name = attrNode.has("attributeName") ? attrNode.get("attributeName").asText() : null;
-            String decision = attrNode.has("attributeDecision") && !attrNode.get("attributeDecision").isNull()
-                    ? attrNode.get("attributeDecision").asText()
+            String name = attrNode.has("Name") ? attrNode.get("Name").asText() : null;
+            String decision = attrNode.has("Decision") && !attrNode.get("Decision").isNull()
+                    ? attrNode.get("Decision").asText()
                     : null;
 
             if (name != null) {
@@ -106,21 +113,23 @@ public class LoanStatusDeterminationHandler implements Function<JsonNode, JsonNo
         return attributes;
     }
 
-    private JsonNode createSuccessResponse(String requestNumber, String loanNumber,
-            String loanStatus, List<LoanAttribute> attributes) {
+    private JsonNode createSuccessResponse(String requestNumber, String loanNumber, String status,
+            List<LoanAttribute> attributes) {
         return objectMapper.createObjectNode()
-                .put("success", true)
-                .put("requestNumber", requestNumber)
-                .put("loanNumber", loanNumber)
-                .put("status", loanStatus)
-                .put("attributeCount", attributes.size());
+                .put(WorkflowConstants.KEY_SUCCESS, true)
+                .put(WorkflowConstants.KEY_REQUEST_NUMBER, requestNumber)
+                .put(WorkflowConstants.KEY_LOAN_NUMBER, loanNumber)
+                .put(WorkflowConstants.KEY_LOAN_STATUS, status);
+        // Note: We might want to include attributes in the response if needed,
+        // but the current implementation only puts status.
+        // However, the call site passes attributes, so we must accept them.
     }
 
     private JsonNode createErrorResponse(String requestNumber, String loanNumber, String error) {
         return objectMapper.createObjectNode()
-                .put("success", false)
-                .put("requestNumber", requestNumber)
-                .put("loanNumber", loanNumber)
-                .put("error", error);
+                .put(WorkflowConstants.KEY_SUCCESS, false)
+                .put(WorkflowConstants.KEY_REQUEST_NUMBER, requestNumber)
+                .put(WorkflowConstants.KEY_LOAN_NUMBER, loanNumber)
+                .put(WorkflowConstants.KEY_ERROR, error);
     }
 }

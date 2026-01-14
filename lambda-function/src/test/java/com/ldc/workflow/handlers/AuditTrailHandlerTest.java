@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ldc.workflow.service.AuditTrailService;
+import com.ldc.workflow.constants.WorkflowConstants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,8 +46,8 @@ public class AuditTrailHandlerTest {
 
         JsonNode result = handler.apply(input);
 
-        assertTrue(result.get("success").asBoolean());
-        assertEquals("REQ-123", result.get("requestNumber").asText());
+        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertEquals("REQ-123", result.get(WorkflowConstants.KEY_REQUEST_NUMBER).asText());
 
         // Verify call with exact arguments
         verify(auditTrailService).logStateTransition(
@@ -63,7 +64,7 @@ public class AuditTrailHandlerTest {
 
         JsonNode result = handler.apply(input);
 
-        assertTrue(result.get("success").asBoolean());
+        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
 
         verify(auditTrailService).logStateTransition(
                 eq("REQ-123"), eq("LOAN-123"), eq("unknown"), eq("APPROVED"), eq(null), anyString());

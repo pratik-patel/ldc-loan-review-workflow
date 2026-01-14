@@ -2,6 +2,7 @@ package com.ldc.workflow.handlers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ldc.workflow.constants.WorkflowConstants;
 import com.ldc.workflow.repository.WorkflowStateRepository;
 import com.ldc.workflow.types.WorkflowState;
 import org.slf4j.Logger;
@@ -28,9 +29,19 @@ public class RegisterCallbackHandler implements Function<JsonNode, JsonNode> {
 
     @Override
     public JsonNode apply(JsonNode input) {
-        String requestNumber = input.path("requestNumber").asText(null);
-        String loanNumber = input.path("loanNumber").asText(null);
-        String taskToken = input.path("taskToken").asText(null);
+        com.ldc.workflow.types.WorkflowContext context;
+        try {
+            context = objectMapper.treeToValue(input, com.ldc.workflow.types.WorkflowContext.class);
+        } catch (Exception e) {
+            logger.error("Error parsing input JSON", e);
+            return createErrorResponse("unknown", "unknown", "Invalid JSON format");
+        }
+
+        String requestNumber = context.getRequestNumber();
+        String loanNumber = context.getLoanNumber();
+        String taskToken = context.getTaskToken();
+        Boolean isReclassConfirmation = context.getIsReclassConfirmation() != null ? context.getIsReclassConfirmation()
+                : false;
 
         logger.info("Registering callback token for Request: {}, Loan: {}", requestNumber, loanNumber);
 
@@ -50,6 +61,9 @@ public class RegisterCallbackHandler implements Function<JsonNode, JsonNode> {
 
             WorkflowState state = stateOpt.get();
             state.setTaskToken(taskToken);
+            if (isReclassConfirmation) {
+                state.setIsReclassConfirmation(true);
+            }
 
             // Save updates the entity with the new token
             workflowStateRepository.save(state);
@@ -65,16 +79,16 @@ public class RegisterCallbackHandler implements Function<JsonNode, JsonNode> {
 
     private JsonNode createSuccessResponse(String requestNumber, String loanNumber) {
         return objectMapper.createObjectNode()
-                .put("success", true)
-                .put("requestNumber", requestNumber)
-                .put("loanNumber", loanNumber);
+                .put(WorkflowConstants.KEY_SUCCESS, true)
+                .put(WorkflowConstants.KEY_REQUEST_NUMBER, requestNumber)
+                .put(WorkflowConstants.KEY_LOAN_NUMBER, loanNumber);
     }
 
     private JsonNode createErrorResponse(String requestNumber, String loanNumber, String error) {
         return objectMapper.createObjectNode()
-                .put("success", false)
-                .put("requestNumber", requestNumber)
-                .put("loanNumber", loanNumber)
-                .put("error", error);
+                .put(WorkflowConstants.KEY_SUCCESS, false)
+                .put(WorkflowConstants.KEY_REQUEST_NUMBER, requestNumber)
+                .put(WorkflowConstants.KEY_LOAN_NUMBER, loanNumber)
+                .put(WorkflowConstants.KEY_ERROR, error);
     }
 }

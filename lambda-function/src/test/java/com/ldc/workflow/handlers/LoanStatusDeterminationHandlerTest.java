@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ldc.workflow.business.LoanStatusDeterminer;
 import com.ldc.workflow.types.LoanAttribute;
+import com.ldc.workflow.constants.WorkflowConstants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -95,8 +96,8 @@ class LoanStatusDeterminationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertTrue(result.get("success").asBoolean());
-        assertEquals("Approved", result.get("status").asText());
+        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertEquals("Approved", result.get(WorkflowConstants.KEY_LOAN_STATUS).asText());
     }
 
     @Test
@@ -116,8 +117,8 @@ class LoanStatusDeterminationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertTrue(result.get("success").asBoolean());
-        assertEquals("Rejected", result.get("status").asText());
+        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertEquals("Rejected", result.get(WorkflowConstants.KEY_LOAN_STATUS).asText());
     }
 
     @Test
@@ -137,8 +138,8 @@ class LoanStatusDeterminationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertTrue(result.get("success").asBoolean());
-        assertEquals("Partially Approved", result.get("status").asText());
+        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertEquals("Partially Approved", result.get(WorkflowConstants.KEY_LOAN_STATUS).asText());
     }
 
     @Test
@@ -158,8 +159,8 @@ class LoanStatusDeterminationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertTrue(result.get("success").asBoolean());
-        assertEquals("Repurchase", result.get("status").asText());
+        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertEquals("Repurchase", result.get(WorkflowConstants.KEY_LOAN_STATUS).asText());
     }
 
     @Test
@@ -179,8 +180,8 @@ class LoanStatusDeterminationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertTrue(result.get("success").asBoolean());
-        assertEquals("Reclass Approved", result.get("status").asText());
+        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertEquals("Reclass Approved", result.get(WorkflowConstants.KEY_LOAN_STATUS).asText());
     }
 
     @Test
@@ -199,8 +200,8 @@ class LoanStatusDeterminationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertTrue(result.get("success").asBoolean());
-        assertEquals("Repurchase", result.get("status").asText());
+        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertEquals("Repurchase", result.get(WorkflowConstants.KEY_LOAN_STATUS).asText());
     }
 
     @Test
@@ -215,8 +216,8 @@ class LoanStatusDeterminationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertFalse(result.get("success").asBoolean());
-        assertTrue(result.has("error"));
+        assertFalse(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertTrue(result.has(WorkflowConstants.KEY_ERROR));
     }
 
     @Test
@@ -234,8 +235,8 @@ class LoanStatusDeterminationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertTrue(result.get("success").asBoolean());
-        assertEquals("Approved", result.get("status").asText());
+        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertEquals("Approved", result.get(WorkflowConstants.KEY_LOAN_STATUS).asText());
     }
 
     @Test
@@ -255,9 +256,9 @@ class LoanStatusDeterminationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertTrue(result.get("success").asBoolean());
+        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
         // Pending should not affect status determination
-        assertEquals("Approved", result.get("status").asText());
+        assertEquals("Approved", result.get(WorkflowConstants.KEY_LOAN_STATUS).asText());
     }
 
     @Test
@@ -265,7 +266,7 @@ class LoanStatusDeterminationHandlerTest {
     void testPreserveRequestNumber() {
         // Arrange
         ObjectNode input = createBaseInput();
-        input.put("requestNumber", "REQ-PRESERVE-001");
+        input.put("RequestNumber", "REQ-PRESERVE-001");
         ArrayNode attributes = objectMapper.createArrayNode();
         attributes.add(createAttribute("CreditScore", "Approved"));
         input.set("attributes", attributes);
@@ -274,7 +275,7 @@ class LoanStatusDeterminationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertEquals("REQ-PRESERVE-001", result.get("requestNumber").asText());
+        assertEquals("REQ-PRESERVE-001", result.get(WorkflowConstants.KEY_REQUEST_NUMBER).asText());
     }
 
     @Test
@@ -282,7 +283,7 @@ class LoanStatusDeterminationHandlerTest {
     void testPreserveLoanNumber() {
         // Arrange
         ObjectNode input = createBaseInput();
-        input.put("loanNumber", "LOAN-PRESERVE-001");
+        input.put("LoanNumber", "LOAN-PRESERVE-001");
         ArrayNode attributes = objectMapper.createArrayNode();
         attributes.add(createAttribute("CreditScore", "Approved"));
         input.set("attributes", attributes);
@@ -291,7 +292,7 @@ class LoanStatusDeterminationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertEquals("LOAN-PRESERVE-001", result.get("loanNumber").asText());
+        assertEquals("LOAN-PRESERVE-001", result.get(WorkflowConstants.KEY_LOAN_NUMBER).asText());
     }
 
     @Test
@@ -305,8 +306,8 @@ class LoanStatusDeterminationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert - should return error response
-        assertFalse(result.get("success").asBoolean());
-        assertTrue(result.has("error"));
+        assertFalse(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertTrue(result.has(WorkflowConstants.KEY_ERROR));
     }
 
     @Test
@@ -320,8 +321,8 @@ class LoanStatusDeterminationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert - should return error response
-        assertFalse(result.get("success").asBoolean());
-        assertTrue(result.has("error"));
+        assertFalse(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertTrue(result.has(WorkflowConstants.KEY_ERROR));
     }
 
     @Test
@@ -340,8 +341,8 @@ class LoanStatusDeterminationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertTrue(result.get("success").asBoolean());
-        assertEquals("Repurchase", result.get("status").asText());
+        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertEquals("Repurchase", result.get(WorkflowConstants.KEY_LOAN_STATUS).asText());
     }
 
     @Test
@@ -360,16 +361,16 @@ class LoanStatusDeterminationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertTrue(result.get("success").asBoolean());
-        assertEquals("Reclass Approved", result.get("status").asText());
+        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertEquals("Reclass Approved", result.get(WorkflowConstants.KEY_LOAN_STATUS).asText());
     }
 
     // Helper methods
     private ObjectNode createBaseInput() {
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("requestNumber", "REQ-001");
-        input.put("loanNumber", "LOAN-001");
-        input.put("loanDecision", "Approved");
+        input.put("RequestNumber", "REQ-001");
+        input.put("LoanNumber", "LOAN-001");
+        input.put("LoanDecision", "Approved");
         return input;
     }
 

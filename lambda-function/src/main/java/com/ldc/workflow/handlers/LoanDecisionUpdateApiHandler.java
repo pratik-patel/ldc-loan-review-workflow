@@ -2,6 +2,7 @@ package com.ldc.workflow.handlers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ldc.workflow.constants.WorkflowConstants;
 import com.ldc.workflow.repository.WorkflowStateRepository;
 import com.ldc.workflow.service.StepFunctionsService;
 import com.ldc.workflow.types.LoanAttribute;
@@ -44,28 +45,45 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
 
     @Override
     public JsonNode apply(JsonNode input) {
+        // Convert JsonNode to WorkflowContext (Extension of Request + Internal Fields)
+        com.ldc.workflow.types.WorkflowContext context;
         try {
-            logger.info("Loan Decision Update API handler invoked");
+            context = objectMapper.treeToValue(input, com.ldc.workflow.types.WorkflowContext.class);
+        } catch (Exception e) {
+            logger.error("Error parsing input JSON", e);
+            return createErrorResponse("unknown", "unknown", "Invalid JSON format");
+        }
 
-            // Extract input fields
-            String requestNumber = input.get("requestNumber").asText();
-            String executionId = input.get("executionId").asText();
-            String loanDecision = input.has("loanDecision") ? input.get("loanDecision").asText() : null;
-            String taskToken = input.get("taskToken").asText();
+        String requestNumber = context.getRequestNumber();
+        if (requestNumber == null)
+            requestNumber = "unknown";
 
-            logger.debug("Updating loan decision for requestNumber: {}, loanDecision: {}",
-                    requestNumber, loanDecision);
+        try {
+            logger.info("Loan Decision Update API handler invoked for Request: {}", requestNumber);
 
-            // Retrieve workflow state from DynamoDB using executionId composite key
-            // Note: We use executionId to derive loanNumber for this lookup
+            String loanNumber = context.getLoanNumber();
+
+            if (loanNumber == null || loanNumber.isEmpty()) {
+                logger.error("Missing required field: LoanNumber");
+                return createErrorResponse(requestNumber, "unknown", "Missing required field: LoanNumber");
+            }
+
+            String loanDecision = context.getLoanDecision();
+
+            // Task Token can be passed via WorkflowContext
+            String inputTaskToken = context.getTaskToken();
+
+            logger.debug("Updating loan decision for requestNumber: {}, loanNumber: {}, decision: {}",
+                    requestNumber, loanNumber, loanDecision);
+
+            // Retrieve workflow state from DynamoDB
             Optional<WorkflowState> stateOpt = workflowStateRepository.findByRequestNumberAndLoanNumber(
-                    requestNumber, executionId); // Using executionId as temporary workaround - should extract
-                                                 // loanNumber from state
+                    requestNumber, loanNumber);
 
             if (stateOpt.isEmpty()) {
-                logger.warn("Workflow state not found for requestNumber: {}, executionId: {}",
-                        requestNumber, executionId);
-                return createErrorResponse(requestNumber, "Workflow state not found");
+                logger.warn("Workflow state not found for requestNumber: {}, loanNumber: {}",
+                        requestNumber, loanNumber);
+                return createErrorResponse(requestNumber, loanNumber, "Workflow state not found");
             }
 
             WorkflowState state = stateOpt.get();
@@ -76,17 +94,21 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
             }
 
             // Update attribute decisions if provided
-            if (input.has("attributes") && !input.get("attributes").isNull()) {
-                List<LoanAttribute> updatedAttributes = objectMapper.readValue(
-                        objectMapper.writeValueAsString(input.get("attributes")),
-                        objectMapper.getTypeFactory().constructCollectionType(java.util.List.class,
-                                LoanAttribute.class));
+            // We need to map LoanPpaRequest.Attribute to LoanAttribute (internal type)
+            // Or better, update LoanAttribute to match usage, but for now map it.
+            if (context.getAttributes() != null && !context.getAttributes().isEmpty()) {
+                List<LoanAttribute> updatedAttributes = context.getAttributes().stream().map(attr -> {
+                    LoanAttribute internalAttr = new LoanAttribute();
+                    internalAttr.setAttributeName(attr.getName());
+                    internalAttr.setAttributeDecision(attr.getDecision());
+                    return internalAttr;
+                }).collect(java.util.stream.Collectors.toList());
 
                 // Validate all attribute decisions
                 for (LoanAttribute attr : updatedAttributes) {
                     if (!attributeDecisionValidator.isValid(attr.getAttributeDecision())) {
                         logger.warn("Invalid attribute decision: {}", attr.getAttributeDecision());
-                        return createErrorResponse(requestNumber,
+                        return createErrorResponse(requestNumber, loanNumber,
                                 "Invalid attribute decision: " + attr.getAttributeName());
                     }
                 }
@@ -98,13 +120,25 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
             workflowStateRepository.save(state);
             logger.info("Loan decision updated successfully for requestNumber: {}", requestNumber);
 
-            // Resume Step Functions execution
-            resumeStepFunctionsExecution(taskToken, state);
+            // Determine Token to use: Input takes precedence, fallback to DB
+            String tokenToUse = inputTaskToken;
+            if (tokenToUse == null || tokenToUse.isEmpty()) {
+                tokenToUse = state.getTaskToken();
+            }
 
-            return createSuccessResponse(requestNumber, loanDecision);
+            if (tokenToUse != null) {
+                // Resume Step Functions execution
+                resumeStepFunctionsExecution(tokenToUse, state);
+            } else {
+                logger.warn("No Task Token found in input or DB. Cannot resume workflow.");
+            }
+
+            return createSuccessResponse(requestNumber, loanNumber, loanDecision);
         } catch (Exception e) {
-            logger.error("Error in loan decision update API handler", e);
-            return createErrorResponse("unknown", "Internal error: " + e.getMessage());
+            logger.error("Error in loan decision update API handler for Request: " + requestNumber, e);
+            return createErrorResponse(requestNumber,
+                    (context.getLoanNumber() != null ? context.getLoanNumber() : "unknown"),
+                    "Internal error: " + e.getMessage());
         }
     }
 
@@ -119,18 +153,19 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
         }
     }
 
-    private JsonNode createSuccessResponse(String requestNumber, String loanDecision) {
+    private JsonNode createSuccessResponse(String requestNumber, String loanNumber, String message) {
         return objectMapper.createObjectNode()
-                .put("success", true)
-                .put("requestNumber", requestNumber)
-                .put("loanDecision", loanDecision)
-                .put("message", "Loan decision updated and workflow resumed successfully");
+                .put(WorkflowConstants.KEY_SUCCESS, true)
+                .put(WorkflowConstants.KEY_REQUEST_NUMBER, requestNumber)
+                .put(WorkflowConstants.KEY_LOAN_NUMBER, loanNumber)
+                .put(WorkflowConstants.KEY_MESSAGE, message);
     }
 
-    private JsonNode createErrorResponse(String requestNumber, String error) {
+    private JsonNode createErrorResponse(String requestNumber, String loanNumber, String error) {
         return objectMapper.createObjectNode()
-                .put("success", false)
-                .put("requestNumber", requestNumber)
-                .put("error", error);
+                .put(WorkflowConstants.KEY_SUCCESS, false)
+                .put(WorkflowConstants.KEY_REQUEST_NUMBER, requestNumber)
+                .put(WorkflowConstants.KEY_LOAN_NUMBER, loanNumber)
+                .put(WorkflowConstants.KEY_ERROR, error);
     }
 }

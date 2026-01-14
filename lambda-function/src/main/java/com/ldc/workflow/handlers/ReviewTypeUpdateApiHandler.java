@@ -2,6 +2,7 @@ package com.ldc.workflow.handlers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ldc.workflow.constants.WorkflowConstants;
 import com.ldc.workflow.repository.WorkflowStateRepository;
 import com.ldc.workflow.service.StepFunctionsService;
 import com.ldc.workflow.types.WorkflowState;
@@ -40,35 +41,48 @@ public class ReviewTypeUpdateApiHandler implements Function<JsonNode, JsonNode> 
 
     @Override
     public JsonNode apply(JsonNode input) {
+        // Convert JsonNode to WorkflowContext
+        com.ldc.workflow.types.WorkflowContext context;
+        try {
+            context = objectMapper.treeToValue(input, com.ldc.workflow.types.WorkflowContext.class);
+        } catch (Exception e) {
+            logger.error("Error parsing input JSON", e);
+            return createErrorResponse("unknown", "unknown", "Invalid JSON format");
+        }
+
         try {
             logger.info("Review Type Update API handler invoked");
 
             // Extract input fields
-            String requestNumber = input.get("requestNumber").asText();
-            String executionId = input.get("executionId").asText();
-            String newReviewType = input.get("newReviewType").asText();
-            String taskToken = input.get("taskToken").asText();
+            String requestNumber = context.getRequestNumber();
+            String loanNumber = context.getLoanNumber();
+            String newReviewType = context.getNewReviewType();
+            String taskToken = context.getTaskToken();
 
-            logger.debug("Updating review type for requestNumber: {}, newReviewType: {}",
-                    requestNumber, newReviewType);
+            if (requestNumber == null || loanNumber == null || newReviewType == null || taskToken == null) {
+                String reqNum = requestNumber != null ? requestNumber : "unknown";
+                return createErrorResponse(reqNum, (loanNumber != null ? loanNumber : "unknown"),
+                        "Missing required fields: requestNumber, loanNumber, newReviewType, taskToken");
+            }
+
+            logger.debug("Updating review type for requestNumber: {}, loanNumber: {}, newReviewType: {}",
+                    requestNumber, loanNumber, newReviewType);
 
             // Validate new review type
             if (!reviewTypeValidator.isValid(newReviewType)) {
                 logger.warn("Invalid review type: {}", newReviewType);
-                return createErrorResponse(requestNumber,
+                return createErrorResponse(requestNumber, loanNumber,
                         reviewTypeValidator.getErrorMessage(newReviewType));
             }
 
-            // Retrieve workflow state from DynamoDB using executionId composite key
-            // Note: We use executionId to derive loanNumber for this lookup
+            // Retrieve workflow state from PostgreSQL
             Optional<WorkflowState> stateOpt = workflowStateRepository.findByRequestNumberAndLoanNumber(
-                    requestNumber, executionId); // Using executionId as temporary workaround - should extract
-                                                 // loanNumber from state
+                    requestNumber, loanNumber);
 
             if (stateOpt.isEmpty()) {
-                logger.warn("Workflow state not found for requestNumber: {}, executionId: {}",
-                        requestNumber, executionId);
-                return createErrorResponse(requestNumber, "Workflow state not found");
+                logger.warn("Workflow state not found for requestNumber: {}, loanNumber: {}",
+                        requestNumber, loanNumber);
+                return createErrorResponse(requestNumber, loanNumber, "Workflow state not found");
             }
 
             WorkflowState state = stateOpt.get();
@@ -82,10 +96,10 @@ public class ReviewTypeUpdateApiHandler implements Function<JsonNode, JsonNode> 
             // Resume Step Functions execution
             resumeStepFunctionsExecution(taskToken, state);
 
-            return createSuccessResponse(requestNumber, newReviewType);
+            return createSuccessResponse(requestNumber, loanNumber, newReviewType);
         } catch (Exception e) {
             logger.error("Error in review type update API handler", e);
-            return createErrorResponse("unknown", "Internal error: " + e.getMessage());
+            return createErrorResponse("unknown", "unknown", "Internal error: " + e.getMessage());
         }
     }
 
@@ -100,18 +114,19 @@ public class ReviewTypeUpdateApiHandler implements Function<JsonNode, JsonNode> 
         }
     }
 
-    private JsonNode createSuccessResponse(String requestNumber, String newReviewType) {
+    private JsonNode createSuccessResponse(String requestNumber, String loanNumber, String message) {
         return objectMapper.createObjectNode()
-                .put("success", true)
-                .put("requestNumber", requestNumber)
-                .put("newReviewType", newReviewType)
-                .put("message", "Review type updated and workflow resumed successfully");
+                .put(WorkflowConstants.KEY_SUCCESS, true)
+                .put(WorkflowConstants.KEY_REQUEST_NUMBER, requestNumber)
+                .put(WorkflowConstants.KEY_LOAN_NUMBER, loanNumber)
+                .put(WorkflowConstants.KEY_MESSAGE, message);
     }
 
-    private JsonNode createErrorResponse(String requestNumber, String error) {
+    private JsonNode createErrorResponse(String requestNumber, String loanNumber, String error) {
         return objectMapper.createObjectNode()
-                .put("success", false)
-                .put("requestNumber", requestNumber)
-                .put("error", error);
+                .put(WorkflowConstants.KEY_SUCCESS, false)
+                .put(WorkflowConstants.KEY_REQUEST_NUMBER, requestNumber)
+                .put(WorkflowConstants.KEY_LOAN_NUMBER, loanNumber)
+                .put(WorkflowConstants.KEY_ERROR, error);
     }
 }

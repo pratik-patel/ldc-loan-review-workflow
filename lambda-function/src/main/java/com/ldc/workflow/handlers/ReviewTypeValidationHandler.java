@@ -3,6 +3,7 @@ package com.ldc.workflow.handlers;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.ldc.workflow.constants.WorkflowConstants;
 import com.ldc.workflow.repository.WorkflowStateRepository;
 import com.ldc.workflow.types.LoanPpaRequest;
 import com.ldc.workflow.types.StateTransition;
@@ -133,8 +134,8 @@ public class ReviewTypeValidationHandler implements Function<JsonNode, JsonNode>
 
             // Return success response with workflow state
             ObjectNode successResponse = objectMapper.createObjectNode();
-            successResponse.put("success", true);
-            successResponse.set("state", objectMapper.valueToTree(state));
+            successResponse.put(WorkflowConstants.KEY_SUCCESS, true);
+            successResponse.set(WorkflowConstants.KEY_STATE, objectMapper.valueToTree(state));
             return successResponse;
 
         } catch (Exception e) {
@@ -145,9 +146,9 @@ public class ReviewTypeValidationHandler implements Function<JsonNode, JsonNode>
 
     private JsonNode createErrorResponse(String requestNumber, String error) {
         return objectMapper.createObjectNode()
-                .put("success", false)
-                .put("requestNumber", requestNumber)
-                .put("isValid", false)
-                .put("error", error);
+                .put(WorkflowConstants.KEY_SUCCESS, false)
+                .put(WorkflowConstants.KEY_REQUEST_NUMBER, requestNumber)
+                .put(WorkflowConstants.KEY_IS_VALID, false)
+                .put(WorkflowConstants.KEY_ERROR, error);
     }
 }

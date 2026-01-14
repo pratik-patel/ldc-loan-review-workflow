@@ -30,15 +30,15 @@ DATE_SUFFIX=$(date +%s)
 EXECUTION_NAME="test-happy-path-$DATE_SUFFIX"
 PAYLOAD=$(cat <<EOF
 {
-  "requestNumber": "REQ-HAPPY-$DATE_SUFFIX",
-  "loanNumber": "1234567890",
-  "reviewType": "LDCReview",
-  "reviewStepUserId": "testuser",
-  "attributes": [
-    {"attributeName": "CreditScore", "attributeDecision": "Pending"},
-    {"attributeName": "DebtRatio", "attributeDecision": "Pending"}
+  "RequestNumber": "REQ-HAPPY-$DATE_SUFFIX",
+  "LoanNumber": "1234567890",
+  "ReviewType": "LDCReview",
+  "ReviewStepUserId": "testuser",
+  "Attributes": [
+    {"Name": "CreditScore", "Decision": "Pending"},
+    {"Name": "DebtRatio", "Decision": "Pending"}
   ],
-  "executionId": "$EXECUTION_NAME"
+  "ExecutionId": "$EXECUTION_NAME"
 }
 EOF
 )
@@ -63,55 +63,52 @@ if [ -n "$EXECUTION_ARN" ]; then
   UPDATE_PAYLOAD=$(cat <<EOF
 {
   "handlerType": "updateLoan",
-  "requestNumber": "REQ-HAPPY-${DATE_SUFFIX}",
-  "loanNumber": "1234567890",
-  "loanDecision": "Approved",
-  "attributes": [
-    {"attributeName": "CreditScore", "attributeDecision": "Approved"},
-    {"attributeName": "DebtRatio", "attributeDecision": "Approved"}
+  "RequestNumber": "REQ-HAPPY-${DATE_SUFFIX}",
+  "LoanNumber": "1234567890",
+  "LoanDecision": "Approved",
+  "Attributes": [
+    {"Name": "CreditScore", "Decision": "Approved"},
+    {"Name": "DebtRatio", "Decision": "Approved"}
   ]
 }
 EOF
 )
   
-  # Invoke Lambda to update DB and get Token - Retry Loop
-  MAX_RETRIES=5
-  RETRY_COUNT=0
-  TASK_TOKEN=""
+  # Invoke Lambda to Update DB and Resume Workflow (Single Step)
+  echo "  Simulating User Action (API Call): Updating Loan to Approved..."
   
-  while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-      aws lambda invoke \
-        --function-name "$LAMBDA_FUNCTION_NAME" \
-        --payload "$(echo "$UPDATE_PAYLOAD" | base64)" \
-        --region "$AWS_REGION" \
-        update_response.json > /dev/null
-        
-      TASK_TOKEN=$(cat update_response.json | jq -r '.taskToken')
-      ERROR_MSG=$(cat update_response.json | jq -r '.error')
-      
-      if [ -n "$TASK_TOKEN" ] && [ "$TASK_TOKEN" != "null" ]; then
-          break
-      fi
-      
-      echo "  Attempt $((RETRY_COUNT+1)): Token not found ($ERROR_MSG). Retrying in 5s..."
-      sleep 5
-      RETRY_COUNT=$((RETRY_COUNT+1))
-  done
+  # Note: omitting taskToken so Lambda fetches it from DB
+  API_PAYLOAD=$(cat <<EOF
+{
+  "handlerType": "loanDecisionUpdateApi",
+  "RequestNumber": "REQ-HAPPY-${DATE_SUFFIX}",
+  "LoanNumber": "1234567890",
+  "LoanDecision": "Approved",
+  "Attributes": [
+    {"Name": "CreditScore", "Decision": "Approved"},
+    {"Name": "DebtRatio", "Decision": "Approved"}
+  ]
+}
+EOF
+)
+  
+  # Execute Lambda
+  aws lambda invoke \
+    --function-name "$LAMBDA_FUNCTION_NAME" \
+    --payload "$(echo "$API_PAYLOAD" | base64)" \
+    --region "$AWS_REGION" \
+    api_response.json > /dev/null
     
-  if [ -n "$TASK_TOKEN" ] && [ "$TASK_TOKEN" != "null" ]; then
-      echo "✓ Retrieved Task Token: ${TASK_TOKEN:0:20}..."
-      
-      # Resume Workflow
-      echo "  Triggering API (SendTaskSuccess)..."
-      aws stepfunctions send-task-success \
-        --task-token "$TASK_TOKEN" \
-        --task-output '{"success": true}' \
-        --region "$AWS_REGION"
-        
-      echo "✓ API Triggered. Waiting for completion..."
+  echo "  API Response:"
+  cat api_response.json
+  echo ""
+  
+  # Check for API success
+  if grep -q '"success":true' api_response.json; then
+      echo "✓ API Call Successful. Waiting for workflow completion..."
       sleep 5
       
-      # Verify Completion
+      # Verify Completion in Step Function History
       HISTORY=$(aws stepfunctions get-execution-history \
         --execution-arn "$EXECUTION_ARN" \
         --region "$AWS_REGION" 2>&1)
@@ -120,11 +117,10 @@ EOF
          echo "✓ Workflow Completed Successfully!"
       else
          echo "⚠ Workflow did not complete yet (or failed)."
+         # Optional: Print history tail
       fi
-  else
-      echo "✗ Failed to retrieve Task Token. Update response:"
-      cat update_response.json
   fi
+
 else
   echo "⚠ Failed to start execution"
 fi
@@ -135,12 +131,12 @@ echo "Test 2: Invalid Review Type"
 EXECUTION_NAME="test-invalid-type-$(date +%s)"
 PAYLOAD=$(cat <<EOF
 {
-  "requestNumber": "REQ-INVALID-$(date +%s)",
-  "loanNumber": "1234567890",
-  "reviewType": "InvalidType",
-  "reviewStepUserId": "testuser",
-  "attributes": [],
-  "executionId": "$EXECUTION_NAME"
+  "RequestNumber": "REQ-INVALID-$(date +%s)",
+  "LoanNumber": "1234567890",
+  "ReviewType": "InvalidType",
+  "ReviewStepUserId": "testuser",
+  "Attributes": [],
+  "ExecutionId": "$EXECUTION_NAME"
 }
 EOF
 )
@@ -180,14 +176,14 @@ echo "Test 3: SecPolicyReview Type"
 EXECUTION_NAME="test-secpolicy-$(date +%s)"
 PAYLOAD=$(cat <<EOF
 {
-  "requestNumber": "REQ-SECPOLICY-$(date +%s)",
-  "loanNumber": "1234567890",
-  "reviewType": "SecPolicyReview",
-  "reviewStepUserId": "testuser",
-  "attributes": [
-    {"attributeName": "ComplianceCheck", "attributeDecision": "Pending"}
+  "RequestNumber": "REQ-SECPOLICY-$(date +%s)",
+  "LoanNumber": "1234567890",
+  "ReviewType": "SecPolicyReview",
+  "ReviewStepUserId": "testuser",
+  "Attributes": [
+    {"Name": "ComplianceCheck", "Decision": "Pending"}
   ],
-  "executionId": "$EXECUTION_NAME"
+  "ExecutionId": "$EXECUTION_NAME"
 }
 EOF
 )
@@ -223,14 +219,14 @@ echo "Test 4: ConduitReview Type"
 EXECUTION_NAME="test-conduit-$(date +%s)"
 PAYLOAD=$(cat <<EOF
 {
-  "requestNumber": "REQ-CONDUIT-$(date +%s)",
-  "loanNumber": "1234567890",
-  "reviewType": "ConduitReview",
-  "reviewStepUserId": "testuser",
-  "attributes": [
-    {"attributeName": "ConduitCompliance", "attributeDecision": "Pending"}
+  "RequestNumber": "REQ-CONDUIT-$(date +%s)",
+  "LoanNumber": "1234567890",
+  "ReviewType": "ConduitReview",
+  "ReviewStepUserId": "testuser",
+  "Attributes": [
+    {"Name": "ConduitCompliance", "Decision": "Pending"}
   ],
-  "executionId": "$EXECUTION_NAME"
+  "ExecutionId": "$EXECUTION_NAME"
 }
 EOF
 )
@@ -267,14 +263,14 @@ echo "Test 5: Repurchase Request"
 EXECUTION_NAME="test-repurchase-$(date +%s)"
 PAYLOAD=$(cat <<EOF
 {
-  "requestNumber": "REQ-REPURCHASE-$(date +%s)",
-  "loanNumber": "1234567890",
-  "reviewType": "LDCReview",
-  "reviewStepUserId": "testuser",
-  "attributes": [
-    {"attributeName": "CreditScore", "attributeDecision": "Pending"}
+  "RequestNumber": "REQ-REPURCHASE-$(date +%s)",
+  "LoanNumber": "1234567890",
+  "ReviewType": "LDCReview",
+  "ReviewStepUserId": "testuser",
+  "Attributes": [
+    {"Name": "CreditScore", "Decision": "Pending"}
   ],
-  "executionId": "$EXECUTION_NAME"
+  "ExecutionId": "$EXECUTION_NAME"
 }
 EOF
 )
@@ -306,14 +302,14 @@ echo "Test 6: Reclass Request"
 EXECUTION_NAME="test-reclass-$(date +%s)"
 PAYLOAD=$(cat <<EOF
 {
-  "requestNumber": "REQ-RECLASS-$(date +%s)",
-  "loanNumber": "1234567890",
-  "reviewType": "LDCReview",
-  "reviewStepUserId": "testuser",
-  "attributes": [
-    {"attributeName": "CreditScore", "attributeDecision": "Pending"}
+  "RequestNumber": "REQ-RECLASS-$(date +%s)",
+  "LoanNumber": "1234567890",
+  "ReviewType": "LDCReview",
+  "ReviewStepUserId": "testuser",
+  "Attributes": [
+    {"Name": "CreditScore", "Decision": "Pending"}
   ],
-  "executionId": "$EXECUTION_NAME"
+  "ExecutionId": "$EXECUTION_NAME"
 }
 EOF
 )

@@ -43,6 +43,9 @@ public class WorkflowState {
     @JsonProperty("taskToken")
     private String taskToken;
 
+    @JsonProperty("isReclassConfirmation")
+    private Boolean isReclassConfirmation;
+
     @JsonProperty("status")
     private String status; // PENDING, COMPLETED, FAILED
 
@@ -149,6 +152,14 @@ public class WorkflowState {
 
     public void setTaskToken(String taskToken) {
         this.taskToken = taskToken;
+    }
+
+    public Boolean getIsReclassConfirmation() {
+        return isReclassConfirmation;
+    }
+
+    public void setIsReclassConfirmation(Boolean isReclassConfirmation) {
+        this.isReclassConfirmation = isReclassConfirmation;
     }
 
     public String getStatus() {

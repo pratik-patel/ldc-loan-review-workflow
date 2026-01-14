@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ldc.workflow.repository.WorkflowStateRepository;
 import com.ldc.workflow.types.WorkflowState;
+import com.ldc.workflow.constants.WorkflowConstants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,9 +36,9 @@ public class VendPpaIntegrationHandlerTest {
     @Test
     void testSuccessfulPpaCall() {
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("requestNumber", "REQ-123");
-        input.put("loanNumber", "LOAN-123");
-        input.put("loanDecision", "APPROVED");
+        input.put("RequestNumber", "REQ-123");
+        input.put("LoanNumber", "LOAN-123");
+        input.put("LoanDecision", "APPROVED");
         input.put("executionId", "EXEC-123");
 
         WorkflowState state = new WorkflowState();
@@ -50,17 +51,17 @@ public class VendPpaIntegrationHandlerTest {
 
         JsonNode result = handler.apply(input);
 
-        assertTrue(result.get("success").asBoolean());
-        assertNotNull(result.get("vendPpaResponse"));
-        assertEquals("SUCCESS", result.get("vendPpaResponse").get("status").asText());
+        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertNotNull(result.get(WorkflowConstants.KEY_VEND_PPA_RESPONSE));
+        assertEquals("SUCCESS", result.get(WorkflowConstants.KEY_VEND_PPA_RESPONSE).get("status").asText());
     }
 
     @Test
     void testStateNotFound() {
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("requestNumber", "REQ-NOTFOUND");
-        input.put("loanNumber", "LOAN-123");
-        input.put("loanDecision", "APPROVED");
+        input.put("RequestNumber", "REQ-NOTFOUND");
+        input.put("LoanNumber", "LOAN-123");
+        input.put("LoanDecision", "APPROVED");
         input.put("executionId", "EXEC-NOTFOUND");
 
         when(workflowStateRepository.findByRequestNumberAndLoanNumber(anyString(), anyString()))
@@ -68,7 +69,7 @@ public class VendPpaIntegrationHandlerTest {
 
         JsonNode result = handler.apply(input);
 
-        assertFalse(result.get("success").asBoolean());
-        assertEquals("Workflow state not found", result.get("error").asText());
+        assertFalse(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertEquals("Workflow state not found", result.get(WorkflowConstants.KEY_ERROR).asText());
     }
 }

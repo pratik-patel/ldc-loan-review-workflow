@@ -41,7 +41,7 @@ echo ""
 # Test 2: Test Lambda with Review Type Validation
 echo "Test 2: Lambda - Review Type Validation Handler"
 echo "-----------------------------------------------"
-PAYLOAD='{"handlerType":"reviewTypeValidation","requestNumber":"REQ-TEST-001","loanNumber":"LOAN-TEST-001","reviewType":"LDCReview","currentAssignedUsername":"test-user","attributes":[]}'
+PAYLOAD='{"handlerType":"reviewTypeValidation","RequestNumber":"REQ-TEST-001","LoanNumber":"1234567890","ReviewType":"LDCReview","ReviewStepUserId":"test-user","Attributes":[]}'
 RESPONSE=$(aws lambda invoke \
   --function-name $LAMBDA_FUNCTION \
   --region $REGION \
@@ -61,7 +61,7 @@ echo ""
 # Test 3: Test Lambda with Loan Status Determination
 echo "Test 3: Lambda - Loan Status Determination Handler"
 echo "--------------------------------------------------"
-PAYLOAD='{"handlerType":"loanStatusDetermination","requestNumber":"REQ-TEST-002","loanNumber":"LOAN-TEST-002","loanDecision":"Approved","attributes":[{"attributeName":"CreditScore","attributeDecision":"Approved"}]}'
+PAYLOAD='{"handlerType":"loanStatusDetermination","RequestNumber":"REQ-TEST-002","LoanNumber":"1234567890","LoanDecision":"Approved","Attributes":[{"Name":"CreditScore","Decision":"Approved"}]}'
 RESPONSE=$(aws lambda invoke \
   --function-name $LAMBDA_FUNCTION \
   --region $REGION \
@@ -80,7 +80,7 @@ echo ""
 # Test 4: Test Lambda with Completion Criteria
 echo "Test 4: Lambda - Completion Criteria Handler"
 echo "--------------------------------------------"
-PAYLOAD='{"handlerType":"completionCriteria","requestNumber":"REQ-TEST-003","loanNumber":"LOAN-TEST-003","loanDecision":"Approved","attributes":[{"attributeName":"CreditScore","attributeDecision":"Approved"}]}'
+PAYLOAD='{"handlerType":"completionCriteria","RequestNumber":"REQ-TEST-003","LoanNumber":"1234567890","LoanDecision":"Approved","Attributes":[{"Name":"CreditScore","Decision":"Approved"}]}'
 RESPONSE=$(aws lambda invoke \
   --function-name $LAMBDA_FUNCTION \
   --region $REGION \
@@ -96,24 +96,6 @@ else
 fi
 echo ""
 
-# Test 5: Test Lambda with Attribute Validation
-echo "Test 5: Lambda - Attribute Validation Handler"
-echo "---------------------------------------------"
-PAYLOAD='{"handlerType":"attributeValidation","requestNumber":"REQ-TEST-004","loanNumber":"LOAN-TEST-004","attributes":[{"attributeName":"CreditScore","attributeDecision":"Approved"}]}'
-RESPONSE=$(aws lambda invoke \
-  --function-name $LAMBDA_FUNCTION \
-  --region $REGION \
-  --payload "$PAYLOAD" \
-  --cli-binary-format raw-in-base64-out \
-  /tmp/lambda-response.json 2>&1)
-
-if [ -s /tmp/lambda-response.json ]; then
-  echo "✓ Attribute Validation handler executed successfully"
-  cat /tmp/lambda-response.json | head -5
-else
-  echo "✗ Attribute Validation handler failed"
-fi
-echo ""
 
 # Test 6: Step Functions State Machine Health Check
 echo "Test 6: Step Functions State Machine Health Check"
@@ -127,17 +109,17 @@ echo "Test 7: Step Functions - Happy Path (Approved)"
 echo "---------------------------------------------"
 EXECUTION_NAME="test-approved-$(date +%s)"
 EXECUTION_INPUT='{
-  "requestNumber": "REQ-APPROVED-001",
-  "loanNumber": "LOAN-APPROVED-001",
-  "reviewType": "LDCReview",
-  "currentAssignedUsername": "test-user",
-  "loanDecision": "Approved",
-  "attributes": [
-    {"attributeName": "CreditScore", "attributeDecision": "Approved"},
-    {"attributeName": "DebtToIncome", "attributeDecision": "Approved"},
-    {"attributeName": "EmploymentHistory", "attributeDecision": "Approved"}
+  "RequestNumber": "REQ-APPROVED-001",
+  "LoanNumber": "1000000001",
+  "ReviewType": "LDCReview",
+  "ReviewStepUserId": "test-user",
+  "LoanDecision": "Approved",
+  "Attributes": [
+    {"Name": "CreditScore", "Decision": "Approved"},
+    {"Name": "DebtToIncome", "Decision": "Approved"},
+    {"Name": "EmploymentHistory", "Decision": "Approved"}
   ],
-  "executionId": "'$EXECUTION_NAME'"
+  "ExecutionId": "'$EXECUTION_NAME'"
 }'
 
 EXEC_ARN=$(aws stepfunctions start-execution \
@@ -166,16 +148,16 @@ echo "Test 8: Step Functions - Repurchase Path"
 echo "----------------------------------------"
 EXECUTION_NAME="test-repurchase-$(date +%s)"
 EXECUTION_INPUT='{
-  "requestNumber": "REQ-REPURCHASE-001",
-  "loanNumber": "LOAN-REPURCHASE-001",
-  "reviewType": "ConduitReview",
-  "currentAssignedUsername": "test-user",
-  "loanDecision": "Repurchase",
-  "attributes": [
-    {"attributeName": "CreditScore", "attributeDecision": "Repurchase"},
-    {"attributeName": "DebtToIncome", "attributeDecision": "Approved"}
+  "RequestNumber": "REQ-REPURCHASE-001",
+  "LoanNumber": "1000000002",
+  "ReviewType": "ConduitReview",
+  "ReviewStepUserId": "test-user",
+  "LoanDecision": "Repurchase",
+  "Attributes": [
+    {"Name": "CreditScore", "Decision": "Repurchase"},
+    {"Name": "DebtToIncome", "Decision": "Approved"}
   ],
-  "executionId": "'$EXECUTION_NAME'"
+  "ExecutionId": "'$EXECUTION_NAME'"
 }'
 
 EXEC_ARN=$(aws stepfunctions start-execution \
@@ -203,16 +185,16 @@ echo "Test 9: Step Functions - Reclass Approved Path"
 echo "----------------------------------------------"
 EXECUTION_NAME="test-reclass-$(date +%s)"
 EXECUTION_INPUT='{
-  "requestNumber": "REQ-RECLASS-001",
-  "loanNumber": "LOAN-RECLASS-001",
-  "reviewType": "SecPolicyReview",
-  "currentAssignedUsername": "test-user",
-  "loanDecision": "Reclass",
-  "attributes": [
-    {"attributeName": "CreditScore", "attributeDecision": "Reclass"},
-    {"attributeName": "DebtToIncome", "attributeDecision": "Approved"}
+  "RequestNumber": "REQ-RECLASS-001",
+  "LoanNumber": "1000000003",
+  "ReviewType": "SecPolicyReview",
+  "ReviewStepUserId": "test-user",
+  "LoanDecision": "Reclass",
+  "Attributes": [
+    {"Name": "CreditScore", "Decision": "Reclass"},
+    {"Name": "DebtToIncome", "Decision": "Approved"}
   ],
-  "executionId": "'$EXECUTION_NAME'"
+  "ExecutionId": "'$EXECUTION_NAME'"
 }'
 
 EXEC_ARN=$(aws stepfunctions start-execution \

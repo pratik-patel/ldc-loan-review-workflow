@@ -74,6 +74,7 @@ module "lambda" {
     SPRING_CLOUD_FUNCTION_DEFINITION = "loanReviewRouter"
     MAIN_CLASS                       = "com.ldc.workflow.LambdaApplication"
     SPRING_PROFILES_ACTIVE           = "lambda"
+    VEND_PPA_ENDPOINT                = var.api_endpoints.vend_ppa_endpoint
   }
 
   database_url      = "jdbc:postgresql://${module.database.endpoint}/${module.database.db_name}"

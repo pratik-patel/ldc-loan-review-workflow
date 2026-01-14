@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ldc.workflow.repository.WorkflowStateRepository;
+import com.ldc.workflow.constants.WorkflowConstants;
 import com.ldc.workflow.service.StepFunctionsService;
 import com.ldc.workflow.types.WorkflowState;
 import com.ldc.workflow.validation.ReviewTypeValidator;
@@ -51,10 +52,11 @@ public class ReviewTypeUpdateApiHandlerTest {
     void testSuccessfulUpdate() {
         // Prepare input
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("requestNumber", "REQ-123");
-        input.put("executionId", "EXEC-123");
-        input.put("newReviewType", "INITIAL_REVIEW");
-        input.put("taskToken", "TOKEN-123");
+        input.put("RequestNumber", "REQ-123");
+        input.put("LoanNumber", "LOAN-123");
+        input.put("ExecutionId", "EXEC-123");
+        input.put("NewReviewType", "INITIAL_REVIEW");
+        input.put("TaskToken", "TOKEN-123");
 
         WorkflowState state = new WorkflowState();
         state.setRequestNumber("REQ-123");
@@ -68,9 +70,9 @@ public class ReviewTypeUpdateApiHandlerTest {
 
         // Verify
         assertNotNull(result);
-        assertTrue(result.get("success").asBoolean());
-        assertEquals("REQ-123", result.get("requestNumber").asText());
-        assertEquals("INITIAL_REVIEW", result.get("newReviewType").asText());
+        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertEquals("REQ-123", result.get(WorkflowConstants.KEY_REQUEST_NUMBER).asText());
+        assertEquals("INITIAL_REVIEW", result.get(WorkflowConstants.KEY_MESSAGE).asText());
 
         // Verify persistence and SF step
         verify(workflowStateRepository).save(state);
@@ -82,10 +84,11 @@ public class ReviewTypeUpdateApiHandlerTest {
     void testInvalidReviewType() {
         // Prepare input
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("requestNumber", "REQ-123");
-        input.put("executionId", "EXEC-123");
-        input.put("newReviewType", "INVALID_TYPE");
-        input.put("taskToken", "TOKEN-123");
+        input.put("RequestNumber", "REQ-123");
+        input.put("LoanNumber", "LOAN-123");
+        input.put("ExecutionId", "EXEC-123");
+        input.put("NewReviewType", "INVALID_TYPE");
+        input.put("TaskToken", "TOKEN-123");
 
         when(reviewTypeValidator.isValid("INVALID_TYPE")).thenReturn(false);
         when(reviewTypeValidator.getErrorMessage("INVALID_TYPE")).thenReturn("Invalid Review Type");
@@ -94,8 +97,8 @@ public class ReviewTypeUpdateApiHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Verify
-        assertFalse(result.get("success").asBoolean());
-        assertEquals("Invalid Review Type", result.get("error").asText());
+        assertFalse(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertEquals("Invalid Review Type", result.get(WorkflowConstants.KEY_ERROR).asText());
         verify(workflowStateRepository, never()).save(any());
         verify(stepFunctionsService, never()).sendTaskSuccess(anyString(), anyString());
     }
@@ -104,20 +107,21 @@ public class ReviewTypeUpdateApiHandlerTest {
     void testWorkflowStateNotFound() {
         // Prepare input
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("requestNumber", "REQ-NOTFOUND");
-        input.put("executionId", "EXEC-NOTFOUND");
-        input.put("newReviewType", "INITIAL_REVIEW");
-        input.put("taskToken", "TOKEN-123");
+        input.put("RequestNumber", "REQ-NOTFOUND");
+        input.put("LoanNumber", "LOAN-NOTFOUND");
+        input.put("ExecutionId", "EXEC-NOTFOUND");
+        input.put("NewReviewType", "INITIAL_REVIEW");
+        input.put("TaskToken", "TOKEN-123");
 
-        when(workflowStateRepository.findByRequestNumberAndLoanNumber("REQ-NOTFOUND", "EXEC-NOTFOUND"))
+        when(workflowStateRepository.findByRequestNumberAndLoanNumber("REQ-NOTFOUND", "LOAN-NOTFOUND"))
                 .thenReturn(Optional.empty());
 
         // Execute
         JsonNode result = handler.apply(input);
 
         // Verify
-        assertFalse(result.get("success").asBoolean());
-        assertEquals("Workflow state not found", result.get("error").asText());
+        assertFalse(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertEquals("Workflow state not found", result.get(WorkflowConstants.KEY_ERROR).asText());
         verify(stepFunctionsService, never()).sendTaskSuccess(anyString(), anyString());
     }
 }

@@ -4,18 +4,20 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Represents a single attribute decision within a loan review.
- * Each attribute can have a decision status: Approved, Rejected, Reclass, Repurchase, or Pending.
+ * Each attribute can have a decision status: Approved, Rejected, Reclass,
+ * Repurchase, or Pending.
  */
 public class LoanAttribute {
-    
-    @JsonProperty("attributeName")
+
+    @JsonProperty("Name")
     private String attributeName;
-    
-    @JsonProperty("attributeDecision")
+
+    @JsonProperty("Decision")
     private String attributeDecision; // Approved, Rejected, Reclass, Repurchase, Pending
 
     // Constructors
-    public LoanAttribute() {}
+    public LoanAttribute() {
+    }
 
     public LoanAttribute(String attributeName, String attributeDecision) {
         this.attributeName = attributeName;

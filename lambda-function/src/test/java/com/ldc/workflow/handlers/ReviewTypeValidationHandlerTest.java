@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ldc.workflow.validation.ReviewTypeValidator;
 import com.ldc.workflow.repository.WorkflowStateRepository;
+import com.ldc.workflow.constants.WorkflowConstants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,9 +14,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Arrays;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -62,9 +60,9 @@ class ReviewTypeValidationHandlerTest {
     void testValidateLDCReviewType() {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("requestNumber", "REQ-001");
-        input.put("loanNumber", "LOAN-001");
-        input.put("reviewType", "LDCReview");
+        input.put("RequestNumber", "REQ-001");
+        input.put("LoanNumber", "LOAN-001");
+        input.put(WorkflowConstants.KEY_REVIEW_TYPE, "LDCReview");
         input.put("currentAssignedUsername", "testuser");
 
         when(reviewTypeValidator.isValid("LDCReview")).thenReturn(true);
@@ -73,8 +71,8 @@ class ReviewTypeValidationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertTrue(result.get("success").asBoolean());
-        assertEquals("LDCReview", result.get("reviewType").asText());
+        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertEquals("LDCReview", result.get(WorkflowConstants.KEY_STATE).get("reviewType").asText());
     }
 
     @Test
@@ -82,9 +80,9 @@ class ReviewTypeValidationHandlerTest {
     void testValidateSecPolicyReviewType() {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("requestNumber", "REQ-002");
-        input.put("loanNumber", "LOAN-002");
-        input.put("reviewType", "SecPolicyReview");
+        input.put("RequestNumber", "REQ-002");
+        input.put("LoanNumber", "LOAN-002");
+        input.put(WorkflowConstants.KEY_REVIEW_TYPE, "SecPolicyReview");
         input.put("currentAssignedUsername", "testuser");
 
         when(reviewTypeValidator.isValid("SecPolicyReview")).thenReturn(true);
@@ -93,8 +91,8 @@ class ReviewTypeValidationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertTrue(result.get("success").asBoolean());
-        assertEquals("SecPolicyReview", result.get("reviewType").asText());
+        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertEquals("SecPolicyReview", result.get(WorkflowConstants.KEY_STATE).get("reviewType").asText());
     }
 
     @Test
@@ -102,9 +100,9 @@ class ReviewTypeValidationHandlerTest {
     void testValidateConduitReviewType() {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("requestNumber", "REQ-003");
-        input.put("loanNumber", "LOAN-003");
-        input.put("reviewType", "ConduitReview");
+        input.put("RequestNumber", "REQ-003");
+        input.put("LoanNumber", "LOAN-003");
+        input.put(WorkflowConstants.KEY_REVIEW_TYPE, "ConduitReview");
         input.put("currentAssignedUsername", "testuser");
 
         when(reviewTypeValidator.isValid("ConduitReview")).thenReturn(true);
@@ -113,8 +111,8 @@ class ReviewTypeValidationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertTrue(result.get("success").asBoolean());
-        assertEquals("ConduitReview", result.get("reviewType").asText());
+        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertEquals("ConduitReview", result.get(WorkflowConstants.KEY_STATE).get("reviewType").asText());
     }
 
     @ParameterizedTest
@@ -123,9 +121,9 @@ class ReviewTypeValidationHandlerTest {
     void testRejectInvalidReviewTypes(String invalidType) {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("requestNumber", "REQ-INVALID");
-        input.put("loanNumber", "LOAN-INVALID");
-        input.put("reviewType", invalidType);
+        input.put("RequestNumber", "REQ-INVALID");
+        input.put("LoanNumber", "LOAN-INVALID");
+        input.put(WorkflowConstants.KEY_REVIEW_TYPE, invalidType);
         input.put("currentAssignedUsername", "testuser");
 
         when(reviewTypeValidator.isValid(invalidType)).thenReturn(false);
@@ -136,8 +134,8 @@ class ReviewTypeValidationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertFalse(result.get("success").asBoolean());
-        assertTrue(result.has("error"));
+        assertFalse(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertTrue(result.has(WorkflowConstants.KEY_ERROR));
     }
 
     @Test
@@ -145,8 +143,8 @@ class ReviewTypeValidationHandlerTest {
     void testMissingReviewTypeField() {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("requestNumber", "REQ-MISSING");
-        input.put("loanNumber", "LOAN-MISSING");
+        input.put("RequestNumber", "REQ-MISSING");
+        input.put("LoanNumber", "LOAN-MISSING");
         input.put("currentAssignedUsername", "testuser");
 
         // Act
@@ -161,8 +159,8 @@ class ReviewTypeValidationHandlerTest {
 
         // Assert - should return error response
         assertNotNull(result, "Handler response should not be null");
-        assertFalse(result.get("success").asBoolean());
-        assertTrue(result.has("error"));
+        assertFalse(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertTrue(result.has(WorkflowConstants.KEY_ERROR));
     }
 
     @Test
@@ -171,7 +169,7 @@ class ReviewTypeValidationHandlerTest {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
         input.put("loanNumber", "LOAN-001");
-        input.put("reviewType", "LDCReview");
+        input.put(WorkflowConstants.KEY_REVIEW_TYPE, "LDCReview");
         input.put("currentAssignedUsername", "testuser");
 
         // Act
@@ -179,8 +177,8 @@ class ReviewTypeValidationHandlerTest {
 
         // Assert - should return error response
         assertNotNull(result, "Handler response should not be null");
-        assertFalse(result.get("success").asBoolean());
-        assertTrue(result.has("error"));
+        assertFalse(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertTrue(result.has(WorkflowConstants.KEY_ERROR));
     }
 
     @Test
@@ -189,7 +187,7 @@ class ReviewTypeValidationHandlerTest {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
         input.put("requestNumber", "REQ-001");
-        input.put("reviewType", "LDCReview");
+        input.put(WorkflowConstants.KEY_REVIEW_TYPE, "LDCReview");
         input.put("currentAssignedUsername", "testuser");
 
         // Act
@@ -197,8 +195,8 @@ class ReviewTypeValidationHandlerTest {
 
         // Assert - should return error response
         assertNotNull(result, "Handler response should not be null");
-        assertFalse(result.get("success").asBoolean());
-        assertTrue(result.has("error"));
+        assertFalse(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertTrue(result.has(WorkflowConstants.KEY_ERROR));
     }
 
     @Test
@@ -206,9 +204,9 @@ class ReviewTypeValidationHandlerTest {
     void testPreserveRequestNumber() {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("requestNumber", "REQ-PRESERVE-001");
-        input.put("loanNumber", "LOAN-001");
-        input.put("reviewType", "LDCReview");
+        input.put("RequestNumber", "REQ-PRESERVE-001");
+        input.put("LoanNumber", "LOAN-001");
+        input.put(WorkflowConstants.KEY_REVIEW_TYPE, "LDCReview");
         input.put("currentAssignedUsername", "testuser");
 
         // Fix: Mock valid review type so we get a success response
@@ -218,7 +216,7 @@ class ReviewTypeValidationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertEquals("REQ-PRESERVE-001", result.get("requestNumber").asText());
+        assertEquals("REQ-PRESERVE-001", result.get(WorkflowConstants.KEY_STATE).get("requestNumber").asText());
     }
 
     @Test
@@ -226,16 +224,16 @@ class ReviewTypeValidationHandlerTest {
     void testPreserveLoanNumber() {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("requestNumber", "REQ-001");
-        input.put("loanNumber", "LOAN-PRESERVE-001");
-        input.put("reviewType", "LDCReview");
+        input.put("RequestNumber", "REQ-001");
+        input.put("LoanNumber", "LOAN-PRESERVE-001");
+        input.put(WorkflowConstants.KEY_REVIEW_TYPE, "LDCReview");
         input.put("currentAssignedUsername", "testuser");
 
         // Act
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertEquals("LOAN-PRESERVE-001", result.get("loanNumber").asText());
+        assertEquals("LOAN-PRESERVE-001", result.get(WorkflowConstants.KEY_STATE).get("loanNumber").asText());
     }
 
     @Test
@@ -243,9 +241,9 @@ class ReviewTypeValidationHandlerTest {
     void testCaseSensitiveReviewTypes() {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("requestNumber", "REQ-CASE");
-        input.put("loanNumber", "LOAN-CASE");
-        input.put("reviewType", "ldcreview"); // lowercase
+        input.put("RequestNumber", "REQ-CASE");
+        input.put("LoanNumber", "LOAN-CASE");
+        input.put(WorkflowConstants.KEY_REVIEW_TYPE, "ldcreview"); // lowercase
         input.put("currentAssignedUsername", "testuser");
 
         when(reviewTypeValidator.isValid("ldcreview")).thenReturn(false);
@@ -256,7 +254,7 @@ class ReviewTypeValidationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertFalse(result.get("success").asBoolean());
+        assertFalse(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
     }
 
     @Test
@@ -264,9 +262,9 @@ class ReviewTypeValidationHandlerTest {
     void testWhitespaceInReviewTypes() {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("requestNumber", "REQ-SPACE");
-        input.put("loanNumber", "LOAN-SPACE");
-        input.put("reviewType", " LDCReview "); // with spaces
+        input.put("RequestNumber", "REQ-SPACE");
+        input.put("LoanNumber", "LOAN-SPACE");
+        input.put(WorkflowConstants.KEY_REVIEW_TYPE, " LDCReview "); // with spaces
         input.put("currentAssignedUsername", "testuser");
 
         when(reviewTypeValidator.isValid(" LDCReview ")).thenReturn(false);
@@ -277,6 +275,6 @@ class ReviewTypeValidationHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertFalse(result.get("success").asBoolean());
+        assertFalse(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
     }
 }

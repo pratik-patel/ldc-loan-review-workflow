@@ -29,6 +29,46 @@ public class StepFunctionsService {
     }
 
     /**
+     * Start a new Step Function execution.
+     */
+    public String startExecution(String stateMachineArn, String executionName, String input) {
+        try {
+            String region = AWS_REGION != null ? AWS_REGION : "us-east-1";
+            String endpoint = String.format(STEP_FUNCTIONS_ENDPOINT, region);
+
+            // Create request body
+            String requestBody = objectMapper.writeValueAsString(
+                    new StartExecutionRequest(stateMachineArn, executionName, input));
+
+            // Create HTTP request
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(endpoint))
+                    .header("Content-Type", "application/x-amz-json-1.0")
+                    .header("X-Amz-Target", "AWSStepFunctions.StartExecution")
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .build();
+
+            // Send request
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                logger.error("Step Functions StartExecution failed with status: {}, body: {}",
+                        response.statusCode(), response.body());
+                throw new RuntimeException("Step Functions StartExecution failed: " + response.statusCode());
+            }
+
+            logger.info("Step Function execution started: {}", executionName);
+
+            // Parse response to get execution ARN
+            var responseObj = objectMapper.readTree(response.body());
+            return responseObj.get("executionArn").asText();
+        } catch (Exception e) {
+            logger.error("Error starting Step Function execution", e);
+            throw new RuntimeException("Failed to start Step Function execution", e);
+        }
+    }
+
+    /**
      * Send task success to Step Functions to resume execution.
      */
     public void sendTaskSuccess(String taskToken, String output) {
@@ -51,7 +91,7 @@ public class StepFunctionsService {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() != 200) {
-                logger.error("Step Functions SendTaskSuccess failed with status: {}, body: {}", 
+                logger.error("Step Functions SendTaskSuccess failed with status: {}, body: {}",
                         response.statusCode(), response.body());
                 throw new RuntimeException("Step Functions API call failed: " + response.statusCode());
             }
@@ -87,7 +127,7 @@ public class StepFunctionsService {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() != 200) {
-                logger.error("Step Functions SendTaskFailure failed with status: {}, body: {}", 
+                logger.error("Step Functions SendTaskFailure failed with status: {}, body: {}",
                         response.statusCode(), response.body());
                 throw new RuntimeException("Step Functions API call failed: " + response.statusCode());
             }
@@ -96,6 +136,21 @@ public class StepFunctionsService {
         } catch (Exception e) {
             logger.error("Error sending task failure to Step Functions", e);
             throw new RuntimeException("Failed to send task failure to Step Functions", e);
+        }
+    }
+
+    /**
+     * Request body for StartExecution API.
+     */
+    public static class StartExecutionRequest {
+        public String stateMachineArn;
+        public String name;
+        public String input;
+
+        public StartExecutionRequest(String stateMachineArn, String name, String input) {
+            this.stateMachineArn = stateMachineArn;
+            this.name = name;
+            this.input = input;
         }
     }
 

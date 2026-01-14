@@ -12,6 +12,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.ldc.workflow.constants.WorkflowConstants;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -55,20 +56,20 @@ class LoanReviewRouterTest {
     void testRouteToReviewTypeValidation() {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("handlerType", "reviewTypeValidation");
+        input.put(WorkflowConstants.KEY_HANDLER_TYPE, WorkflowConstants.HANDLER_REVIEW_TYPE_VALIDATION);
         input.put("requestNumber", "REQ-001");
         input.put("loanNumber", "LOAN-001");
         input.put("reviewType", "LDCReview");
 
         ObjectNode mockResponse = objectMapper.createObjectNode();
-        mockResponse.put("success", true);
+        mockResponse.put(WorkflowConstants.KEY_SUCCESS, true);
         when(reviewTypeValidationHandler.apply(any())).thenReturn(mockResponse);
 
         // Act
         JsonNode result = router.apply(input);
 
         // Assert
-        assertTrue(result.get("success").asBoolean());
+        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
     }
 
     @Test
@@ -76,17 +77,17 @@ class LoanReviewRouterTest {
     void testRouteToCompletionCriteria() {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("handlerType", "completionCriteria");
+        input.put(WorkflowConstants.KEY_HANDLER_TYPE, WorkflowConstants.HANDLER_COMPLETION_CRITERIA);
 
         ObjectNode mockResponse = objectMapper.createObjectNode();
-        mockResponse.put("complete", true);
+        mockResponse.put(WorkflowConstants.KEY_COMPLETE, true);
         when(completionCriteriaHandler.apply(any())).thenReturn(mockResponse);
 
         // Act
         JsonNode result = router.apply(input);
 
         // Assert
-        assertTrue(result.get("complete").asBoolean());
+        assertTrue(result.get(WorkflowConstants.KEY_COMPLETE).asBoolean());
     }
 
     @Test
@@ -94,17 +95,17 @@ class LoanReviewRouterTest {
     void testRouteToLoanStatusDetermination() {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("handlerType", "loanStatusDetermination");
+        input.put(WorkflowConstants.KEY_HANDLER_TYPE, WorkflowConstants.HANDLER_LOAN_STATUS_DETERMINATION);
 
         ObjectNode mockResponse = objectMapper.createObjectNode();
-        mockResponse.put("status", "Approved");
+        mockResponse.put(WorkflowConstants.KEY_LOAN_STATUS, "Approved");
         when(loanStatusDeterminationHandler.apply(any())).thenReturn(mockResponse);
 
         // Act
         JsonNode result = router.apply(input);
 
         // Assert
-        assertEquals("Approved", result.get("status").asText());
+        assertEquals("Approved", result.get(WorkflowConstants.KEY_LOAN_STATUS).asText());
     }
 
     @Test
@@ -112,17 +113,17 @@ class LoanReviewRouterTest {
     void testRouteToVendPpaIntegration() {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("handlerType", "vendPpaIntegration");
+        input.put(WorkflowConstants.KEY_HANDLER_TYPE, WorkflowConstants.HANDLER_VEND_PPA_INTEGRATION);
 
         ObjectNode mockResponse = objectMapper.createObjectNode();
-        mockResponse.put("success", true);
+        mockResponse.put(WorkflowConstants.KEY_SUCCESS, true);
         when(vendPpaIntegrationHandler.apply(any())).thenReturn(mockResponse);
 
         // Act
         JsonNode result = router.apply(input);
 
         // Assert
-        assertTrue(result.get("success").asBoolean());
+        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
     }
 
     @Test
@@ -130,17 +131,17 @@ class LoanReviewRouterTest {
     void testRouteToAuditTrail() {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("handlerType", "auditTrail");
+        input.put(WorkflowConstants.KEY_HANDLER_TYPE, WorkflowConstants.HANDLER_AUDIT_TRAIL);
 
         ObjectNode mockResponse = objectMapper.createObjectNode();
-        mockResponse.put("success", true);
+        mockResponse.put(WorkflowConstants.KEY_SUCCESS, true);
         when(auditTrailHandler.apply(any())).thenReturn(mockResponse);
 
         // Act
         JsonNode result = router.apply(input);
 
         // Assert
-        assertTrue(result.get("success").asBoolean());
+        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
     }
 
     @Test
@@ -148,14 +149,14 @@ class LoanReviewRouterTest {
     void testUnknownHandlerType() {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("handlerType", "unknownHandler");
+        input.put(WorkflowConstants.KEY_HANDLER_TYPE, "unknownHandler");
 
         // Act
         JsonNode result = router.apply(input);
 
         // Assert
-        assertFalse(result.get("success").asBoolean());
-        assertTrue(result.has("error"));
+        assertFalse(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertTrue(result.has(WorkflowConstants.KEY_ERROR));
     }
 
     @Test
@@ -170,8 +171,8 @@ class LoanReviewRouterTest {
 
         // Assert
         assertNotNull(result);
-        assertFalse(result.get("success").asBoolean());
-        assertTrue(result.has("error"));
+        assertFalse(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertTrue(result.has(WorkflowConstants.KEY_ERROR));
     }
 
     @Test
@@ -179,13 +180,13 @@ class LoanReviewRouterTest {
     void testNullHandlerType() {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
-        input.putNull("handlerType");
+        input.putNull(WorkflowConstants.KEY_HANDLER_TYPE);
 
         // Act
         JsonNode result = router.apply(input);
 
         // Assert
-        assertFalse(result.get("success").asBoolean());
+        assertFalse(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
     }
 
     @Test
@@ -193,13 +194,13 @@ class LoanReviewRouterTest {
     void testEmptyHandlerType() {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("handlerType", "");
+        input.put(WorkflowConstants.KEY_HANDLER_TYPE, "");
 
         // Act
         JsonNode result = router.apply(input);
 
         // Assert
-        assertFalse(result.get("success").asBoolean());
+        assertFalse(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
     }
 
     @Test
@@ -207,13 +208,13 @@ class LoanReviewRouterTest {
     void testCaseSensitiveHandlerTypes() {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("handlerType", "ReviewTypeValidation"); // Wrong case
+        input.put(WorkflowConstants.KEY_HANDLER_TYPE, "ReviewTypeValidation"); // Wrong case
 
         // Act
         JsonNode result = router.apply(input);
 
         // Assert
-        assertFalse(result.get("success").asBoolean());
+        assertFalse(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
     }
 
     @Test
@@ -221,7 +222,7 @@ class LoanReviewRouterTest {
     void testHandlerNotImplemented() {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("handlerType", "reviewTypeValidation");
+        input.put(WorkflowConstants.KEY_HANDLER_TYPE, WorkflowConstants.HANDLER_REVIEW_TYPE_VALIDATION);
         // Manually create router with null handlers
         LoanReviewRouter routerWithoutHandlers = new LoanReviewRouter();
 
@@ -229,8 +230,8 @@ class LoanReviewRouterTest {
         JsonNode result = routerWithoutHandlers.apply(input);
 
         // Assert
-        assertFalse(result.get("success").asBoolean());
-        assertTrue(result.has("error"));
+        assertFalse(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertTrue(result.has(WorkflowConstants.KEY_ERROR));
     }
 
     @Test
@@ -238,7 +239,7 @@ class LoanReviewRouterTest {
     void testExceptionInHandler() {
         // Arrange
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("handlerType", "reviewTypeValidation");
+        input.put(WorkflowConstants.KEY_HANDLER_TYPE, WorkflowConstants.HANDLER_REVIEW_TYPE_VALIDATION);
 
         when(reviewTypeValidationHandler.apply(any())).thenThrow(new RuntimeException("Test error"));
 
@@ -246,7 +247,7 @@ class LoanReviewRouterTest {
         JsonNode result = router.apply(input);
 
         // Assert
-        assertFalse(result.get("success").asBoolean());
-        assertTrue(result.has("error"));
+        assertFalse(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
+        assertTrue(result.has(WorkflowConstants.KEY_ERROR));
     }
 }

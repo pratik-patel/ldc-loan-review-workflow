@@ -3,6 +3,7 @@ package com.ldc.workflow.handlers;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ldc.workflow.business.CompletionCriteriaChecker;
+import com.ldc.workflow.constants.WorkflowConstants;
 import com.ldc.workflow.repository.WorkflowStateRepository;
 import com.ldc.workflow.types.LoanAttribute;
 import org.slf4j.Logger;
@@ -40,11 +41,17 @@ public class CompletionCriteriaHandler implements Function<JsonNode, JsonNode> {
     public JsonNode apply(JsonNode input) {
         logger.info("Completion Criteria handler invoked");
 
+        com.ldc.workflow.types.WorkflowContext context;
+        try {
+            context = objectMapper.treeToValue(input, com.ldc.workflow.types.WorkflowContext.class);
+        } catch (Exception e) {
+            logger.error("Error parsing input JSON", e);
+            return createSuccessResponse("unknown", "unknown", false, List.of("Invalid JSON format"));
+        }
+
         // Extract input fields
-        String requestNumber = input.get("requestNumber").asText("unknown");
-        String loanNumber = input.get("loanNumber").asText("unknown");
-        String executionId = input.has("executionId") ? input.get("executionId").asText()
-                : "ldc-loan-review-" + requestNumber;
+        String requestNumber = context.getRequestNumber() != null ? context.getRequestNumber() : "unknown";
+        String loanNumber = context.getLoanNumber() != null ? context.getLoanNumber() : "unknown";
 
         logger.debug("Checking completion criteria for requestNumber: {}, loanNumber: {}",
                 requestNumber, loanNumber);
@@ -56,7 +63,7 @@ public class CompletionCriteriaHandler implements Function<JsonNode, JsonNode> {
         if (stateOpt.isEmpty()) {
             logger.warn("Workflow state not found for completion check. Request: {}", requestNumber);
             // If state not found, we can't be complete.
-            return createSuccessResponse(requestNumber, loanNumber, false, "Workflow state not found");
+            return createSuccessResponse(requestNumber, loanNumber, false, List.of("Workflow state not found"));
         }
 
         com.ldc.workflow.types.WorkflowState state = stateOpt.get();
@@ -74,27 +81,30 @@ public class CompletionCriteriaHandler implements Function<JsonNode, JsonNode> {
                 isComplete, requestNumber);
 
         if (isComplete) {
-            return createSuccessResponse(requestNumber, loanNumber, true, null);
+            return createSuccessResponse(requestNumber, loanNumber, true, List.of());
         } else {
             String reason = completionCriteriaChecker.getIncompleteReason(
                     loanDecision, attributes);
-            return createSuccessResponse(requestNumber, loanNumber, false, reason);
+            return createSuccessResponse(requestNumber, loanNumber, false, List.of(reason));
         }
     }
 
-    private JsonNode createSuccessResponse(String requestNumber, String loanNumber,
-            boolean isComplete, String blockingReason) {
-        var response = objectMapper.createObjectNode()
-                .put("success", true)
-                .put("requestNumber", requestNumber)
-                .put("loanNumber", loanNumber)
-                .put("complete", isComplete);
+    private JsonNode createSuccessResponse(String requestNumber, String loanNumber, boolean complete,
+            List<String> blockingReasons) {
+        return objectMapper.createObjectNode()
+                .put(WorkflowConstants.KEY_SUCCESS, true)
+                .put(WorkflowConstants.KEY_REQUEST_NUMBER, requestNumber)
+                .put(WorkflowConstants.KEY_LOAN_NUMBER, loanNumber)
+                .put(WorkflowConstants.KEY_COMPLETE, complete)
+                .put(WorkflowConstants.KEY_BLOCKING_REASONS, String.join(", ", blockingReasons));
+    }
 
-        if (blockingReason != null) {
-            response.put("blockingReasons", blockingReason);
-        }
-
-        return response;
+    private JsonNode createErrorResponse(String requestNumber, String loanNumber, String error) {
+        return objectMapper.createObjectNode()
+                .put(WorkflowConstants.KEY_SUCCESS, false)
+                .put(WorkflowConstants.KEY_REQUEST_NUMBER, requestNumber)
+                .put(WorkflowConstants.KEY_LOAN_NUMBER, loanNumber)
+                .put(WorkflowConstants.KEY_ERROR, error);
     }
 
 }

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ldc.workflow.business.CompletionCriteriaChecker;
 import com.ldc.workflow.repository.WorkflowStateRepository;
+import com.ldc.workflow.constants.WorkflowConstants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -82,12 +83,12 @@ class CompletionCriteriaHandlerTest {
     void testCompleteWhenAllAttributesNonPending() throws Exception {
         // Arrange
         ObjectNode input = createBaseInput();
-        input.put("loanDecision", "Approved");
+        input.put("LoanDecision", "Approved");
         ArrayNode attributes = objectMapper.createArrayNode();
         attributes.add(createAttribute("CreditScore", "Approved"));
         attributes.add(createAttribute("DebtRatio", "Rejected"));
         attributes.add(createAttribute("IncomeVerification", "Approved"));
-        input.set("attributes", attributes);
+        input.set("Attributes", attributes);
 
         mockWorkflowState(input);
 
@@ -95,7 +96,7 @@ class CompletionCriteriaHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertTrue(result.get("complete").asBoolean());
+        assertTrue(result.get(WorkflowConstants.KEY_COMPLETE).asBoolean());
     }
 
     @Test
@@ -103,7 +104,7 @@ class CompletionCriteriaHandlerTest {
     void testIncompleteWhenAttributeIsPending() {
         // Arrange
         ObjectNode input = createBaseInput();
-        input.put("loanDecision", "Approved");
+        input.put("LoanDecision", "Approved");
         ArrayNode attributes = objectMapper.createArrayNode();
         attributes.add(createAttribute("CreditScore", "Approved"));
         attributes.add(createAttribute("DebtRatio", "Pending"));
@@ -114,7 +115,7 @@ class CompletionCriteriaHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertFalse(result.get("complete").asBoolean());
+        assertFalse(result.get(WorkflowConstants.KEY_COMPLETE).asBoolean());
     }
 
     @Test
@@ -132,7 +133,7 @@ class CompletionCriteriaHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertFalse(result.get("complete").asBoolean());
+        assertFalse(result.get(WorkflowConstants.KEY_COMPLETE).asBoolean());
     }
 
     @Test
@@ -150,7 +151,7 @@ class CompletionCriteriaHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertFalse(result.get("complete").asBoolean());
+        assertFalse(result.get(WorkflowConstants.KEY_COMPLETE).asBoolean());
     }
 
     @Test
@@ -158,7 +159,7 @@ class CompletionCriteriaHandlerTest {
     void testIncompleteWhenAttributeIsNull() {
         // Arrange
         ObjectNode input = createBaseInput();
-        input.put("loanDecision", "Approved");
+        input.put("LoanDecision", "Approved");
         ArrayNode attributes = objectMapper.createArrayNode();
         ObjectNode attr = objectMapper.createObjectNode();
         attr.put("attributeName", "CreditScore");
@@ -170,7 +171,7 @@ class CompletionCriteriaHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertFalse(result.get("complete").asBoolean());
+        assertFalse(result.get(WorkflowConstants.KEY_COMPLETE).asBoolean());
     }
 
     @Test
@@ -178,7 +179,7 @@ class CompletionCriteriaHandlerTest {
     void testCompleteWithEmptyAttributesArray() {
         // Arrange
         ObjectNode input = createBaseInput();
-        input.put("loanDecision", "Approved");
+        input.put("LoanDecision", "Approved");
         ArrayNode attributes = objectMapper.createArrayNode();
         input.set("attributes", attributes);
 
@@ -186,7 +187,7 @@ class CompletionCriteriaHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertFalse(result.get("complete").asBoolean());
+        assertFalse(result.get(WorkflowConstants.KEY_COMPLETE).asBoolean());
     }
 
     @Test
@@ -194,7 +195,7 @@ class CompletionCriteriaHandlerTest {
     void testCompleteWithSingleAttribute() {
         // Arrange
         ObjectNode input = createBaseInput();
-        input.put("loanDecision", "Approved");
+        input.put("LoanDecision", "Approved");
         ArrayNode attributes = objectMapper.createArrayNode();
         attributes.add(createAttribute("CreditScore", "Approved"));
         input.set("attributes", attributes);
@@ -203,7 +204,7 @@ class CompletionCriteriaHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertTrue(result.get("complete").asBoolean());
+        assertTrue(result.get(WorkflowConstants.KEY_COMPLETE).asBoolean());
     }
 
     @Test
@@ -211,7 +212,7 @@ class CompletionCriteriaHandlerTest {
     void testIncompleteWithSinglePendingAttribute() {
         // Arrange
         ObjectNode input = createBaseInput();
-        input.put("loanDecision", "Approved");
+        input.put("LoanDecision", "Approved");
         ArrayNode attributes = objectMapper.createArrayNode();
         attributes.add(createAttribute("CreditScore", "Pending"));
         input.set("attributes", attributes);
@@ -220,7 +221,7 @@ class CompletionCriteriaHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertFalse(result.get("complete").asBoolean());
+        assertFalse(result.get(WorkflowConstants.KEY_COMPLETE).asBoolean());
     }
 
     @Test
@@ -237,8 +238,8 @@ class CompletionCriteriaHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertFalse(result.get("complete").asBoolean());
-        assertTrue(result.has("blockingReasons"));
+        assertFalse(result.get(WorkflowConstants.KEY_COMPLETE).asBoolean());
+        assertTrue(result.has(WorkflowConstants.KEY_BLOCKING_REASONS));
     }
 
     @Test
@@ -246,17 +247,17 @@ class CompletionCriteriaHandlerTest {
     void testPreserveRequestNumber() {
         // Arrange
         ObjectNode input = createBaseInput();
-        input.put("requestNumber", "REQ-PRESERVE-001");
-        input.put("loanDecision", "Approved");
+        input.put("RequestNumber", "REQ-PRESERVE-001");
+        input.put("LoanDecision", "Approved");
         ArrayNode attributes = objectMapper.createArrayNode();
         attributes.add(createAttribute("CreditScore", "Approved"));
-        input.set("attributes", attributes);
+        input.set("Attributes", attributes);
 
         // Act
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertEquals("REQ-PRESERVE-001", result.get("requestNumber").asText());
+        assertEquals("REQ-PRESERVE-001", result.get(WorkflowConstants.KEY_REQUEST_NUMBER).asText());
     }
 
     @Test
@@ -267,7 +268,7 @@ class CompletionCriteriaHandlerTest {
         for (String decision : decisions) {
             // Arrange
             ObjectNode input = createBaseInput();
-            input.put("loanDecision", decision);
+            input.put("LoanDecision", decision);
             ArrayNode attributes = objectMapper.createArrayNode();
             attributes.add(createAttribute("CreditScore", "Approved"));
             input.set("attributes", attributes);
@@ -276,7 +277,7 @@ class CompletionCriteriaHandlerTest {
             JsonNode result = handler.apply(input);
 
             // Assert
-            assertTrue(result.get("complete").asBoolean(),
+            assertTrue(result.get(WorkflowConstants.KEY_COMPLETE).asBoolean(),
                     "Should be complete for decision: " + decision);
         }
     }
@@ -286,7 +287,7 @@ class CompletionCriteriaHandlerTest {
     void testMultiplePendingAttributes() {
         // Arrange
         ObjectNode input = createBaseInput();
-        input.put("loanDecision", "Approved");
+        input.put("LoanDecision", "Approved");
         ArrayNode attributes = objectMapper.createArrayNode();
         attributes.add(createAttribute("CreditScore", "Pending"));
         attributes.add(createAttribute("DebtRatio", "Pending"));
@@ -297,7 +298,7 @@ class CompletionCriteriaHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertFalse(result.get("complete").asBoolean());
+        assertFalse(result.get(WorkflowConstants.KEY_COMPLETE).asBoolean());
     }
 
     @Test
@@ -305,7 +306,7 @@ class CompletionCriteriaHandlerTest {
     void testMixedPendingAttributes() {
         // Arrange
         ObjectNode input = createBaseInput();
-        input.put("loanDecision", "Approved");
+        input.put("LoanDecision", "Approved");
         ArrayNode attributes = objectMapper.createArrayNode();
         attributes.add(createAttribute("CreditScore", "Approved"));
         attributes.add(createAttribute("DebtRatio", "Pending"));
@@ -316,7 +317,7 @@ class CompletionCriteriaHandlerTest {
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertFalse(result.get("complete").asBoolean());
+        assertFalse(result.get(WorkflowConstants.KEY_COMPLETE).asBoolean());
     }
 
     @Test
@@ -324,21 +325,21 @@ class CompletionCriteriaHandlerTest {
     void testNullAttributesArray() {
         // Arrange
         ObjectNode input = createBaseInput();
-        input.put("loanDecision", "Approved");
+        input.put("LoanDecision", "Approved");
         input.putNull("attributes");
 
         // Act
         JsonNode result = handler.apply(input);
 
         // Assert
-        assertFalse(result.get("complete").asBoolean());
+        assertFalse(result.get(WorkflowConstants.KEY_COMPLETE).asBoolean());
     }
 
     // Helper methods
     private ObjectNode createBaseInput() {
         ObjectNode input = objectMapper.createObjectNode();
-        input.put("requestNumber", "REQ-001");
-        input.put("loanNumber", "LOAN-001");
+        input.put("RequestNumber", "REQ-001");
+        input.put("LoanNumber", "LOAN-001");
         return input;
     }
 

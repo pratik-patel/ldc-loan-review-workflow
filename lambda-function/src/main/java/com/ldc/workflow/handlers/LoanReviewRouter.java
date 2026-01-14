@@ -2,6 +2,7 @@ package com.ldc.workflow.handlers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ldc.workflow.constants.WorkflowConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,41 +54,55 @@ public class LoanReviewRouter implements Function<JsonNode, JsonNode> {
     private RegisterCallbackHandler registerCallbackHandler;
 
     @Autowired(required = false)
-    private UpdateLoanHandler updateLoanHandler;
+    private LoanDecisionUpdateApiHandler loanDecisionUpdateApiHandler;
+
+    @Autowired(required = false)
+    private ReviewTypeUpdateApiHandler reviewTypeUpdateApiHandler;
+
+    @Autowired(required = false)
+    private StartPpaReviewApiHandler startPpaReviewApiHandler;
 
     @Override
     public JsonNode apply(JsonNode input) {
         try {
-            String handlerType = input.get("handlerType").asText();
+            String handlerType = input.get(WorkflowConstants.KEY_HANDLER_TYPE).asText();
             logger.info("Routing to handler: {}", handlerType);
 
             return switch (handlerType) {
-                case "reviewTypeValidation" ->
+                case WorkflowConstants.HANDLER_REVIEW_TYPE_VALIDATION ->
                     reviewTypeValidationHandler != null ? reviewTypeValidationHandler.apply(input)
-                            : createNotImplementedResponse("reviewTypeValidation");
+                            : createNotImplementedResponse(WorkflowConstants.HANDLER_REVIEW_TYPE_VALIDATION);
 
-                case "completionCriteria" ->
+                case WorkflowConstants.HANDLER_COMPLETION_CRITERIA ->
                     completionCriteriaHandler != null ? completionCriteriaHandler.apply(input)
-                            : createNotImplementedResponse("completionCriteria");
-                case "loanStatusDetermination" ->
+                            : createNotImplementedResponse(WorkflowConstants.HANDLER_COMPLETION_CRITERIA);
+                case WorkflowConstants.HANDLER_LOAN_STATUS_DETERMINATION ->
                     loanStatusDeterminationHandler != null ? loanStatusDeterminationHandler.apply(input)
-                            : createNotImplementedResponse("loanStatusDetermination");
+                            : createNotImplementedResponse(WorkflowConstants.HANDLER_LOAN_STATUS_DETERMINATION);
 
-                case "vendPpaIntegration" ->
+                case WorkflowConstants.HANDLER_VEND_PPA_INTEGRATION ->
                     vendPpaIntegrationHandler != null ? vendPpaIntegrationHandler.apply(input)
-                            : createNotImplementedResponse("vendPpaIntegration");
+                            : createNotImplementedResponse(WorkflowConstants.HANDLER_VEND_PPA_INTEGRATION);
 
-                case "auditTrail" ->
+                case WorkflowConstants.HANDLER_AUDIT_TRAIL ->
                     auditTrailHandler != null ? auditTrailHandler.apply(input)
-                            : createNotImplementedResponse("auditTrail");
+                            : createNotImplementedResponse(WorkflowConstants.HANDLER_AUDIT_TRAIL);
 
-                case "registerCallback" ->
+                case WorkflowConstants.HANDLER_REGISTER_CALLBACK ->
                     registerCallbackHandler != null ? registerCallbackHandler.apply(input)
-                            : createNotImplementedResponse("registerCallback");
+                            : createNotImplementedResponse(WorkflowConstants.HANDLER_REGISTER_CALLBACK);
 
-                case "updateLoan" ->
-                    updateLoanHandler != null ? updateLoanHandler.apply(input)
-                            : createNotImplementedResponse("updateLoan");
+                case WorkflowConstants.HANDLER_LOAN_DECISION_UPDATE_API ->
+                    loanDecisionUpdateApiHandler != null ? loanDecisionUpdateApiHandler.apply(input)
+                            : createNotImplementedResponse(WorkflowConstants.HANDLER_LOAN_DECISION_UPDATE_API);
+
+                case WorkflowConstants.HANDLER_REVIEW_TYPE_UPDATE_API ->
+                    reviewTypeUpdateApiHandler != null ? reviewTypeUpdateApiHandler.apply(input)
+                            : createNotImplementedResponse(WorkflowConstants.HANDLER_REVIEW_TYPE_UPDATE_API);
+
+                case WorkflowConstants.HANDLER_START_PPA_REVIEW_API ->
+                    startPpaReviewApiHandler != null ? startPpaReviewApiHandler.apply(input)
+                            : createNotImplementedResponse(WorkflowConstants.HANDLER_START_PPA_REVIEW_API);
 
                 default -> {
                     logger.error("Unknown handler type: {}", handlerType);
@@ -102,20 +117,20 @@ public class LoanReviewRouter implements Function<JsonNode, JsonNode> {
 
     private JsonNode createSuccessResponse(String message) {
         return objectMapper.createObjectNode()
-                .put("success", true)
-                .put("message", message);
+                .put(WorkflowConstants.KEY_SUCCESS, true)
+                .put(WorkflowConstants.KEY_MESSAGE, message);
     }
 
     private JsonNode createErrorResponse(String message) {
         return objectMapper.createObjectNode()
-                .put("success", false)
-                .put("error", message);
+                .put(WorkflowConstants.KEY_SUCCESS, false)
+                .put(WorkflowConstants.KEY_ERROR, message);
     }
 
     private JsonNode createNotImplementedResponse(String handlerType) {
         logger.warn("Handler not implemented: {}", handlerType);
         return objectMapper.createObjectNode()
-                .put("success", false)
-                .put("error", "Handler not implemented: " + handlerType);
+                .put(WorkflowConstants.KEY_SUCCESS, false)
+                .put(WorkflowConstants.KEY_ERROR, "Handler not implemented: " + handlerType);
     }
 }
