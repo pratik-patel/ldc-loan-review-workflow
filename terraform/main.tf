@@ -79,7 +79,7 @@ module "lambda" {
 
   database_url      = "jdbc:postgresql://${module.database.endpoint}/${module.database.db_name}"
   database_username = module.database.username
-  database_password = var.db_password
+  database_password = module.database.password
 }
 
 # Step Functions State Machine
@@ -93,7 +93,6 @@ module "step_functions" {
   environment             = var.environment
   log_retention_days      = var.cloudwatch_log_retention_days
   reclass_timer_seconds   = var.reclass_timer_seconds
-  lambda_functions_ready  = module.lambda.function_arn
 }
 
 # CloudWatch Logs
