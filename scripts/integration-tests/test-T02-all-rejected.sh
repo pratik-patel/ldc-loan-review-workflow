@@ -76,7 +76,7 @@ if ! echo "$START_JSON" | jq -e '.workflows[0]' > /dev/null 2>&1; then
 fi
 
 echo -e "${GREEN}✓ Workflow started${NC}"
-sleep 10
+sleep 20  # Wait for Step Function to reach WaitForLoanDecision and save task token
 
 # Step 2: Submit rejected attributes
 echo "Step 2: Submitting all rejected attributes..."

@@ -63,7 +63,7 @@ if ! echo "$(extract_lambda_response "$START_RESPONSE")" | jq -e '.workflows[0]'
 fi
 
 echo -e "${GREEN}✓ Workflow started${NC}"
-sleep 10
+sleep 20  # Wait for RegisterCallback to complete
 
 # Submit partial approval
 echo "Step 2: Submitting partial approval..."

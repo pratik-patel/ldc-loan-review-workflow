@@ -58,7 +58,7 @@ if ! START_RESPONSE=$(invoke_lambda '{"handlerType":"startPpaReviewApi","TaskNum
 fi
 
 echo -e "${GREEN}✓ Workflow started${NC}"
-sleep 10
+sleep 20  # Wait for RegisterCallback
 
 # First call - keep one attribute pending (should loop back)
 echo "Step 2: Submitting with one still Pending (should not complete)..."

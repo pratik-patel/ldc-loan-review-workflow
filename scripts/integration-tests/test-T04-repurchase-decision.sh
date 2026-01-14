@@ -70,7 +70,7 @@ if ! echo "$(extract_lambda_response "$START_RESPONSE")" | jq -e '.workflows[0]'
 fi
 
 echo -e "${GREEN}✓ Workflow started${NC}"
-sleep 10
+sleep 20  # Wait for RegisterCallback
 
 # Submit one Repurchase and one Approved - Repurchase should win
 echo "Step 2: Submitting Repurchase + Approved (Repurchase should win)..."

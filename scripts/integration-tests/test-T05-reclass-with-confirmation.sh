@@ -58,7 +58,7 @@ if ! START_RESPONSE=$(invoke_lambda '{"handlerType":"startPpaReviewApi","TaskNum
 fi
 
 echo -e "${GREEN}✓ Workflow started${NC}"
-sleep 10
+sleep 20  # Wait for RegisterCallback
 
 # Submit Reclass attribute
 echo "Step 2: Submitting Reclass attribute..."
