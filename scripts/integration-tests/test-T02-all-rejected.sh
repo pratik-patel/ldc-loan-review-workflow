@@ -24,18 +24,37 @@ invoke_lambda() {
   local payload="$1"
   local output_file=$(mktemp)
   
+  # Invoke Lambda and check HTTP status
   if ! aws lambda invoke \
     --function-name $LAMBDA_FUNCTION_NAME \
     --payload "$payload" \
     --region $REGION \
     --cli-binary-format raw-in-base64-out \
     "$output_file" 2>&1 | grep -q "StatusCode.*200"; then
-    echo -e "${RED}✗ Lambda invoke failed${NC}" >&2
+    echo -e "${RED}✗ Lambda HTTP invoke failed${NC}" >&2
     rm -f "$output_file"
     return 1
   fi
   
-  cat "$output_file"
+  # Check Lambda function response for errors
+  local response=$(cat "$output_file")
+  local first_json=$(extract_lambda_response "$response")
+  
+  if echo "$first_json" | jq -e '.Error or .error' > /dev/null 2>&1; then
+    echo -e "${RED}✗ Lambda returned error${NC}" >&2
+    echo "$first_json" | jq '.' >&2
+    rm -f "$output_file"
+    return 1
+  fi
+  
+  if echo "$first_json" | jq -e '.Success == false' > /dev/null 2>&1; then
+    echo -e "${RED}✗ Lambda Success=false${NC}" >&2
+    echo "$first_json" | jq '.' >&2
+    rm -f "$output_file"
+    return 1
+  fi
+  
+  echo "$response"
   rm -f "$output_file"
   return 0
 }

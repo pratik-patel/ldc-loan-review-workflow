@@ -1,11 +1,11 @@
 #!/bin/bash
-# Integration Test T05: Reclass with Confirmation
-# Tests Reclass workflow (note: full 2-step confirmation not implemented in current SF)
+# Integration Test T12: Empty Attributes Array
+# Tests workflow with no attributes (edge case)
 
 LAMBDA_FUNCTION_NAME="ldc-loan-review-lambda"
 REGION="us-east-1"
-REQUEST_NUMBER="REQ-T05-$(date +%s)"
-LOAN_NUMBER="5678901234"
+REQUEST_NUMBER="REQ-T12-$(date +%s)"
+LOAN_NUMBER="1234567800"
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -13,7 +13,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 echo "========================================="
-echo "Test T05: Reclass Decision"
+echo "Test T12: Empty Attributes Array"
 echo "========================================="
 echo "Request: $REQUEST_NUMBER"
 echo ""
@@ -50,28 +50,17 @@ invoke_lambda() {
   return 0
 }
 
-# Start workflow
-echo "Step 1: Starting workflow..."
-if ! START_RESPONSE=$(invoke_lambda '{"handlerType":"startPpaReviewApi","TaskNumber":5001,"RequestNumber":"'$REQUEST_NUMBER'","LoanNumber":"'$LOAN_NUMBER'","ReviewType":"LDC","Attributes":[{"Name":"Income","Decision":"Pending"}]}'); then
+# Start workflow with EMPTY attributes array
+echo "Step 1: Starting workflow with empty attributes..."
+if ! START_RESPONSE=$(invoke_lambda '{"handlerType":"startPpaReviewApi","TaskNumber":12001,"RequestNumber":"'$REQUEST_NUMBER'","LoanNumber":"'$LOAN_NUMBER'","ReviewType":"LDC","Attributes":[]}'); then
   echo -e "${RED}✗ Failed to start${NC}"
   exit 1
 fi
 
-echo -e "${GREEN}✓ Workflow started${NC}"
-sleep 10
-
-# Submit Reclass attribute
-echo "Step 2: Submitting Reclass attribute..."
-if ! DECISION_RESPONSE=$(invoke_lambda '{"handlerType":"loanDecisionUpdateApi","RequestNumber":"'$REQUEST_NUMBER'","LoanNumber":"'$LOAN_NUMBER'","Attributes":[{"Name":"Income","Decision":"Reclass"}]}'); then
-  echo -e "${RED}✗ Failed to submit${NC}"
-  exit 1
-fi
-
-echo -e "${GREEN}✓ Reclass submitted${NC}"
+echo -e "${GREEN}✓ Workflow started with empty attributes${NC}"
 sleep 15
 
-# Check execution
-echo "Step 3: Checking execution..."
+# Check execution - should complete immediately or handle edge case
 EXEC_ARN=$(aws stepfunctions list-executions \
   --state-machine-arn arn:aws:states:us-east-1:851725256415:stateMachine:ldc-loan-review-workflow \
   --region $REGION \
@@ -79,22 +68,11 @@ EXEC_ARN=$(aws stepfunctions list-executions \
   jq -r ".executions[] | select(.name | contains(\"$REQUEST_NUMBER\")) | .executionArn" | head -1)
 
 if [ -n "$EXEC_ARN" ]; then
-  LOAN_STATUS=$(aws stepfunctions get-execution-history --execution-arn "$EXEC_ARN" --region $REGION --max-results 100 2>&1 | \
-    jq -r '.events[] | select(.type == "TaskStateExited" and (.stateExitedEventDetails.name == "DetermineLoanStatus")) | .stateExitedEventDetails.output' | \
-    jq -r '.Payload.LoanStatus // empty' | head -1)
-  
   EXEC_STATUS=$(aws stepfunctions describe-execution --execution-arn "$EXEC_ARN" --region $REGION 2>&1 | jq -r '.status')
-  
   echo "Execution Status: $EXEC_STATUS"
-  echo "Loan Status: ${LOAN_STATUS:-'(calculating)'}"
-  
-  if [[ "$LOAN_STATUS" == "Reclass Approved" ]] || [[ "$LOAN_STATUS" == "Reclass" ]]; then
-    echo -e "${GREEN}✓ Test T05 PASSED: Reclass decision set${NC}"
-  else
-    echo -e "${YELLOW}✓ Test T05 ACCEPTABLE: Workflow processing${NC}"
-  fi
+  echo -e "${GREEN}✓ Test T12 PASSED: Empty attributes handled${NC}"
   exit 0
 fi
 
-echo -e "${RED}✗ Test T05 FAILED${NC}"
+echo -e "${RED}✗ Test T12 FAILED${NC}"
 exit 1

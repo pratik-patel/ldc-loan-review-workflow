@@ -30,12 +30,22 @@ invoke_lambda() {
     --region $REGION \
     --cli-binary-format raw-in-base64-out \
     "$output_file" 2>&1 | grep -q "StatusCode.*200"; then
-    echo -e "${RED}✗ Lambda invoke failed${NC}" >&2
+    echo -e "${RED}✗ Lambda HTTP invoke failed${NC}" >&2
     rm -f "$output_file"
     return 1
   fi
   
-  cat "$output_file"
+  local response=$(cat "$output_file")
+  local first_json=$(extract_lambda_response "$response")
+  
+  if echo "$first_json" | jq -e '.Error or .error or (.Success == false)' > /dev/null 2>&1; then
+    echo -e "${RED}✗ Lambda error in response${NC}" >&2
+    echo "$first_json" | jq '.' >&2
+    rm -f "$output_file"
+    return 1
+  fi
+  
+  echo "$response"
   rm -f "$output_file"
   return 0
 }
