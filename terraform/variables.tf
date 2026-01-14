@@ -127,13 +127,11 @@ variable "feature_flags" {
   type = object({
     enable_vend_ppa_integration = string
     enable_email_notifications  = string
-    enable_audit_logging        = string
     reclass_feature_enabled     = string
   })
   default = {
     enable_vend_ppa_integration = "true"
     enable_email_notifications  = "true"
-    enable_audit_logging        = "true"
     reclass_feature_enabled     = "true"
   }
 }

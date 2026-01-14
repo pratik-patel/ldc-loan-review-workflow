@@ -25,6 +25,20 @@ public final class WorkflowConstants {
     public static final String KEY_STATE = "State";
     public static final String KEY_IS_VALID = "IsValid";
     public static final String KEY_VEND_PPA_RESPONSE = "VendPpaResponse";
+    public static final String KEY_TASK_NUMBER = "TaskNumber";
+    public static final String KEY_CURRENT_WORKFLOW_STAGE = "CurrentWorkflowStage";
+    public static final String KEY_STATUS = "Status";
+    public static final String KEY_RETRY_COUNT = "RetryCount";
+    public static final String KEY_WORKFLOW_STATE_NAME = "WorkflowStateName";
+    public static final String KEY_LOAN_DECISION = "LoanDecision";
+    public static final String KEY_REVIEW_STEP = "ReviewStep";
+    public static final String KEY_REVIEW_STEP_USER_ID = "ReviewStepUserId";
+    public static final String KEY_STATE_TRANSITION_HISTORY = "StateTransitionHistory";
+    public static final String KEY_WORKFLOW_STATE_USER_ID = "WorkflowStateUserId";
+    public static final String KEY_WORKFLOW_STATE_START_DATE_TIME = "WorkflowStateStartDateTime";
+    public static final String KEY_WORKFLOW_STATE_END_DATE_TIME = "WorkflowStateEndDateTime";
+    public static final String KEY_NAME = "Name";
+    public static final String KEY_DECISION = "Decision";
 
     // Handler Types
     public static final String HANDLER_REVIEW_TYPE_VALIDATION = "reviewTypeValidation";

@@ -242,7 +242,7 @@
         {
           "Variable": "$.vendPpaResult.Payload.Success",
           "BooleanEquals": true,
-          "Next": "LogAuditTrail"
+          "Next": "WorkflowComplete"
         }
       ],
       "Default": "VendPpaError"
@@ -251,39 +251,6 @@
       "Type": "Fail",
       "Error": "VendPpaIntegrationFailed",
       "Cause": "Vend PPA API call failed"
-    },
-    "LogAuditTrail": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::lambda:invoke",
-      "Parameters": {
-        "FunctionName": "${lambda_function_name}",
-        "Payload": {
-          "handlerType": "auditTrail",
-          "RequestNumber.$": "$.RequestNumber",
-          "LoanNumber.$": "$.LoanNumber",
-          "stateChange": "WorkflowCompleted"
-        }
-      },
-      "ResultPath": "$.auditResult",
-      "Next": "WorkflowComplete",
-      "Catch": [
-        {
-          "ErrorEquals": [
-            "States.ALL"
-          ],
-          "Next": "WorkflowComplete"
-        }
-      ],
-      "Retry": [
-        {
-          "ErrorEquals": [
-            "States.TaskFailed"
-          ],
-          "IntervalSeconds": 2,
-          "MaxAttempts": 3,
-          "BackoffRate": 2.0
-        }
-      ]
     },
     "WorkflowComplete": {
       "Type": "Succeed"

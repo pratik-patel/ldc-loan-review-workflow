@@ -196,6 +196,13 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
                 workflow.put("ReviewStep", mapReviewTypeToStep(state.getReviewType()));
                 workflow.put("WorkflowStateName",
                         state.getWorkflowStateName() != null ? state.getWorkflowStateName() : "Processing");
+                workflow.put("CurrentWorkflowStage",
+                        state.getCurrentWorkflowStage() != null ? state.getCurrentWorkflowStage()
+                                : "Loan Decision Received");
+                workflow.put("Status",
+                        state.getStatus() != null ? state.getStatus() : "RUNNING");
+                workflow.put("TaskNumber", state.getTaskNumber());
+                workflow.put("RetryCount", state.getRetryCount());
                 workflow.put("ReviewStepUserId",
                         state.getCurrentAssignedUsername() != null ? state.getCurrentAssignedUsername() : "System");
 

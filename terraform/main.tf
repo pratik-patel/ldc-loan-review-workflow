@@ -54,6 +54,9 @@ module "database" {
   publicly_accessible = true # For testing purposes
 }
 
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
 # Lambda Function
 module "lambda" {
   source = "./modules/lambda"
@@ -75,6 +78,7 @@ module "lambda" {
     MAIN_CLASS                       = "com.ldc.workflow.LambdaApplication"
     SPRING_PROFILES_ACTIVE           = "lambda"
     VEND_PPA_ENDPOINT                = var.api_endpoints.vend_ppa_endpoint
+    STATE_MACHINE_ARN                = "arn:aws:states:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:stateMachine:ldc-loan-review-workflow"
   }
 
   database_url      = "jdbc:postgresql://${module.database.endpoint}/${module.database.db_name}"

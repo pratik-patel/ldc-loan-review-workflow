@@ -156,16 +156,7 @@ resource "aws_ssm_parameter" "enable_email_notifications" {
   }
 }
 
-resource "aws_ssm_parameter" "enable_audit_logging" {
-  name        = "/${var.parameter_store_prefix}/${var.environment}/feature_flags/enable_audit_logging"
-  description = "Enable/disable detailed audit logging"
-  type        = "String"
-  value       = var.feature_flags.enable_audit_logging
-  tags = {
-    Category    = "FeatureFlags"
-    Environment = var.environment
-  }
-}
+
 
 resource "aws_ssm_parameter" "reclass_feature_enabled" {
   name        = "/${var.parameter_store_prefix}/${var.environment}/feature_flags/reclass_feature_enabled"

@@ -84,9 +84,11 @@ public class LoanReviewRouter implements Function<JsonNode, JsonNode> {
                     vendPpaIntegrationHandler != null ? vendPpaIntegrationHandler.apply(input)
                             : createNotImplementedResponse(WorkflowConstants.HANDLER_VEND_PPA_INTEGRATION);
 
-                case WorkflowConstants.HANDLER_AUDIT_TRAIL ->
-                    auditTrailHandler != null ? auditTrailHandler.apply(input)
-                            : createNotImplementedResponse(WorkflowConstants.HANDLER_AUDIT_TRAIL);
+                /*
+                 * case WorkflowConstants.HANDLER_AUDIT_TRAIL ->
+                 * auditTrailHandler != null ? auditTrailHandler.apply(input)
+                 * : createNotImplementedResponse(WorkflowConstants.HANDLER_AUDIT_TRAIL);
+                 */
 
                 case WorkflowConstants.HANDLER_REGISTER_CALLBACK ->
                     registerCallbackHandler != null ? registerCallbackHandler.apply(input)

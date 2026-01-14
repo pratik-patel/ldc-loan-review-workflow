@@ -69,10 +69,7 @@ output "enable_email_notifications_parameter_name" {
   description = "Parameter Store name for email notifications feature flag"
 }
 
-output "enable_audit_logging_parameter_name" {
-  value       = aws_ssm_parameter.enable_audit_logging.name
-  description = "Parameter Store name for audit logging feature flag"
-}
+
 
 output "reclass_feature_enabled_parameter_name" {
   value       = aws_ssm_parameter.reclass_feature_enabled.name
@@ -119,7 +116,6 @@ output "all_parameters" {
     feature_flags = {
       enable_vend_ppa_integration = aws_ssm_parameter.enable_vend_ppa_integration.name
       enable_email_notifications  = aws_ssm_parameter.enable_email_notifications.name
-      enable_audit_logging        = aws_ssm_parameter.enable_audit_logging.name
       reclass_feature_enabled     = aws_ssm_parameter.reclass_feature_enabled.name
     }
     logging = {

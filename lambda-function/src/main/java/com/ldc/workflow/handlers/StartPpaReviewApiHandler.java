@@ -176,36 +176,39 @@ public class StartPpaReviewApiHandler implements Function<JsonNode, JsonNode> {
 
             ObjectNode workflow = workflows.addObject();
             if (request.getTaskNumber() != null) {
-                workflow.put("TaskNumber", request.getTaskNumber());
+                workflow.put(WorkflowConstants.KEY_TASK_NUMBER, request.getTaskNumber());
             }
-            workflow.put("RequestNumber", request.getRequestNumber());
-            workflow.put("LoanNumber", request.getLoanNumber());
-            workflow.put("LoanDecision",
+            workflow.put(WorkflowConstants.KEY_REQUEST_NUMBER, request.getRequestNumber());
+            workflow.put(WorkflowConstants.KEY_LOAN_NUMBER, request.getLoanNumber());
+            workflow.put(WorkflowConstants.KEY_LOAN_DECISION,
                     request.getLoanDecision() != null ? request.getLoanDecision() : "Pending Review");
 
             // Add attributes if present
             if (request.getAttributes() != null && !request.getAttributes().isEmpty()) {
-                ArrayNode attributes = workflow.putArray("Attributes");
+                ArrayNode attributes = workflow.putArray(WorkflowConstants.KEY_ATTRIBUTES);
                 for (LoanPpaRequest.Attribute attr : request.getAttributes()) {
                     ObjectNode attrNode = attributes.addObject();
-                    attrNode.put("Name", attr.getName());
-                    attrNode.put("Decision", attr.getDecision());
+                    attrNode.put(WorkflowConstants.KEY_NAME, attr.getName());
+                    attrNode.put(WorkflowConstants.KEY_DECISION, attr.getDecision());
                 }
             }
 
-            workflow.put("ReviewStep", mapReviewTypeToStep(request.getReviewType()));
-            workflow.put("ReviewStepUserId",
+            workflow.put(WorkflowConstants.KEY_REVIEW_STEP, mapReviewTypeToStep(request.getReviewType()));
+            workflow.put(WorkflowConstants.KEY_REVIEW_STEP_USER_ID,
                     request.getReviewStepUserId() != null ? request.getReviewStepUserId() : "System");
-            workflow.put("WorkflowStateName", workflowStateName);
+            workflow.put(WorkflowConstants.KEY_WORKFLOW_STATE_NAME, workflowStateName);
+            workflow.put(WorkflowConstants.KEY_CURRENT_WORKFLOW_STAGE, WorkflowConstants.STAGE_REVIEW_INITIATED);
+            workflow.put(WorkflowConstants.KEY_STATUS, "RUNNING");
+            workflow.put(WorkflowConstants.KEY_RETRY_COUNT, 0);
 
             // Add initial state transition
-            ArrayNode stateHistory = workflow.putArray("StateTransitionHistory");
+            ArrayNode stateHistory = workflow.putArray(WorkflowConstants.KEY_STATE_TRANSITION_HISTORY);
             ObjectNode initialTransition = stateHistory.addObject();
-            initialTransition.put("WorkflowStateName", "ValidateReviewType");
-            initialTransition.put("WorkflowStateUserId",
+            initialTransition.put(WorkflowConstants.KEY_WORKFLOW_STATE_NAME, "ValidateReviewType");
+            initialTransition.put(WorkflowConstants.KEY_WORKFLOW_STATE_USER_ID,
                     request.getReviewStepUserId() != null ? request.getReviewStepUserId() : "System");
-            initialTransition.put("WorkflowStateStartDateTime", Instant.now().toString());
-            initialTransition.put("WorkflowStateEndDateTime", Instant.now().toString());
+            initialTransition.put(WorkflowConstants.KEY_WORKFLOW_STATE_START_DATE_TIME, Instant.now().toString());
+            initialTransition.put(WorkflowConstants.KEY_WORKFLOW_STATE_END_DATE_TIME, Instant.now().toString());
 
             return response;
         } catch (Exception e) {
