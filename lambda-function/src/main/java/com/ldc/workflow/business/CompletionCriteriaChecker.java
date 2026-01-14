@@ -22,19 +22,15 @@ public class CompletionCriteriaChecker {
      * 
      * Criteria:
      * - All attribute decisions are non-null and non-Pending
-     * - Loan decision is non-null
+     * 
+     * Note: LoanDecision itself is calculated AFTER this check by
+     * DetermineLoanStatus
      */
     public boolean isLoanDecisionComplete(String loanDecision, List<LoanAttribute> attributes) {
-        // Check if loan decision is non-null
-        if (loanDecision == null || loanDecision.trim().isEmpty()) {
-            logger.debug("Loan decision is null or empty");
-            return false;
-        }
-
         // Check if all attributes are non-null and non-Pending
         if (attributes == null || attributes.isEmpty()) {
-            logger.debug("No attributes provided");
-            return false;
+            logger.debug("No attributes provided - considered complete (edge case)");
+            return true; // Empty attributes = immediate decision
         }
 
         boolean allAttributesComplete = attributes.stream()
@@ -48,7 +44,7 @@ public class CompletionCriteriaChecker {
             return false;
         }
 
-        logger.info("Loan decision is complete");
+        logger.info("All attributes complete - ready for loan decision determination");
         return true;
     }
 
