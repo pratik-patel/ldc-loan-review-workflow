@@ -66,7 +66,7 @@ if ! invoke_lambda '{"handlerType":"loanDecisionUpdateApi","RequestNumber":"'$RE
   echo -e "${YELLOW}⚠ First update may have failed (workflow might loop back)${NC}"
 fi
 
-sleep 8
+sleep 20  # Wait for RegisterCallback
 
 # Second call - all complete (should proceed)
 echo "Step 3: Submitting all complete (should proceed)..."

@@ -79,7 +79,7 @@ module "lambda" {
 
   database_url      = "jdbc:postgresql://${module.database.endpoint}/${module.database.db_name}"
   database_username = module.database.username
-  database_password = module.database.password
+  database_password = var.db_password  # Use variable, not module output
 }
 
 # Step Functions State Machine

@@ -66,7 +66,7 @@ fi
 
 # Step 2: Wait for Step Function to reach WaitForLoanDecision
 echo -e "\n${YELLOW}Step 2: Waiting for Step Function to reach WaitForLoanDecision (8s)...${NC}"
-sleep 8
+sleep 20  # Wait for RegisterCallback
 
 # Step 3: Submit all approved attributes via getNextStep (MFE Input #1)
 echo -e "\n${BLUE}Step 3: Submitting all APPROVED attributes via getNextStep...${NC}"
