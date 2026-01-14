@@ -75,6 +75,22 @@ public class LoanStatusDeterminationHandler implements Function<JsonNode, JsonNo
             String loanStatus = loanStatusDeterminer.determineStatus(attributes);
             logger.info("Loan status determined: {} for requestNumber: {}", loanStatus, requestNumber);
 
+            // Update workflow state with determined status
+            com.ldc.workflow.types.WorkflowState state = stateOpt.get();
+            state.setLoanStatus(loanStatus);
+            state.setLoanDecision(loanStatus); // Also set loanDecision for consistency
+            state.setUpdatedAt(java.time.Instant.now().toString());
+
+            // Save updated state to database
+            try {
+                workflowStateRepository.save(state);
+                logger.info("Workflow state updated with loanStatus: {} for requestNumber: {}",
+                        loanStatus, requestNumber);
+            } catch (Exception e) {
+                logger.error("Failed to update workflow state", e);
+                // Continue anyway - status was determined
+            }
+
             // Return success response
             return createSuccessResponse(requestNumber, loanNumber, loanStatus, attributes);
         } catch (Exception e) {

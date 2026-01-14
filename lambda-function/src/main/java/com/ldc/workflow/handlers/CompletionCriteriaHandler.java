@@ -80,7 +80,18 @@ public class CompletionCriteriaHandler implements Function<JsonNode, JsonNode> {
         logger.info("Loan decision completion status: {} for requestNumber: {}",
                 isComplete, requestNumber);
 
+        // Update workflow state if complete
         if (isComplete) {
+            try {
+                state.setUpdatedAt(java.time.Instant.now().toString());
+                state.setWorkflowStateName("CompletionCriteriaMet");
+                workflowStateRepository.save(state);
+                logger.info("Workflow state updated - completion criteria met for requestNumber: {}",
+                        requestNumber);
+            } catch (Exception e) {
+                logger.error("Failed to update workflow state", e);
+                // Continue anyway
+            }
             return createSuccessResponse(requestNumber, loanNumber, true, List.of());
         } else {
             String reason = completionCriteriaChecker.getIncompleteReason(

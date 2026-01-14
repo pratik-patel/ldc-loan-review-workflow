@@ -71,6 +71,18 @@ public class VendPpaIntegrationHandler implements Function<JsonNode, JsonNode> {
 
             logger.info("Vend PPA call completed successfully for loanNumber: {}", loanNumber);
 
+            // Mark workflow as completed
+            try {
+                state.setStatus("COMPLETED");
+                state.setWorkflowStateName("VendPpaCompleted");
+                state.setUpdatedAt(java.time.Instant.now().toString());
+                workflowStateRepository.save(state);
+                logger.info("Workflow marked as COMPLETED for requestNumber: {}", requestNumber);
+            } catch (Exception e) {
+                logger.error("Failed to update workflow completion status", e);
+                // Continue anyway - vend PPA succeeded
+            }
+
             return createSuccessResponse(requestNumber, loanNumber, vendPpaResponse);
         } catch (Exception e) {
             logger.error("Error in Vend PPA integration handler", e);

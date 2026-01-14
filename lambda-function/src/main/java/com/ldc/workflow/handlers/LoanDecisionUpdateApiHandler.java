@@ -2,6 +2,8 @@ package com.ldc.workflow.handlers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ldc.workflow.constants.WorkflowConstants;
 import com.ldc.workflow.repository.WorkflowStateRepository;
 import com.ldc.workflow.service.StepFunctionsService;
@@ -154,11 +156,69 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
     }
 
     private JsonNode createSuccessResponse(String requestNumber, String loanNumber, String message) {
-        return objectMapper.createObjectNode()
-                .put(WorkflowConstants.KEY_SUCCESS, true)
-                .put(WorkflowConstants.KEY_REQUEST_NUMBER, requestNumber)
-                .put(WorkflowConstants.KEY_LOAN_NUMBER, loanNumber)
-                .put(WorkflowConstants.KEY_MESSAGE, message);
+        try {
+            // Fetch current workflow state for complete response
+            Optional<WorkflowState> stateOpt = workflowStateRepository.findByRequestNumberAndLoanNumber(
+                    requestNumber, loanNumber);
+
+            ObjectNode response = objectMapper.createObjectNode();
+            ArrayNode workflows = response.putArray("workflows");
+            ObjectNode workflow = workflows.addObject();
+
+            // Required fields per schema
+            workflow.put("RequestNumber", requestNumber);
+            workflow.put("LoanNumber", loanNumber);
+
+            // Add state fields if available
+            if (stateOpt.isPresent()) {
+                WorkflowState state = stateOpt.get();
+                workflow.put("LoanDecision",
+                        state.getLoanDecision() != null ? state.getLoanDecision() : "Pending Review");
+                workflow.put("ReviewStep", mapReviewTypeToStep(state.getReviewType()));
+                workflow.put("WorkflowStateName",
+                        state.getWorkflowStateName() != null ? state.getWorkflowStateName() : "Processing");
+                workflow.put("ReviewStepUserId",
+                        state.getCurrentAssignedUsername() != null ? state.getCurrentAssignedUsername() : "System");
+
+                // Add attributes if present
+                if (state.getAttributes() != null && !state.getAttributes().isEmpty()) {
+                    ArrayNode attributes = workflow.putArray("Attributes");
+                    for (com.ldc.workflow.types.LoanAttribute attr : state.getAttributes()) {
+                        ObjectNode attrNode = attributes.addObject();
+                        attrNode.put("Name", attr.getAttributeName());
+                        attrNode.put("Decision", attr.getAttributeDecision());
+                    }
+                }
+            } else {
+                // Fallback values if state not found
+                workflow.put("LoanDecision", message);
+                workflow.put("WorkflowStateName", "Updated");
+            }
+
+            return response;
+        } catch (Exception e) {
+            logger.error("Error creating schema-compliant response", e);
+            // Fallback to simple response
+            return objectMapper.createObjectNode()
+                    .put(WorkflowConstants.KEY_SUCCESS, true)
+                    .put(WorkflowConstants.KEY_REQUEST_NUMBER, requestNumber)
+                    .put(WorkflowConstants.KEY_MESSAGE, message);
+        }
+    }
+
+    private String mapReviewTypeToStep(String reviewType) {
+        if (reviewType == null)
+            return "System Process";
+        switch (reviewType) {
+            case "LDC":
+                return "LDC Review";
+            case "Sec Policy":
+                return "Sec Policy Review";
+            case "Conduit":
+                return "Conduit Review";
+            default:
+                return "System Process";
+        }
     }
 
     private JsonNode createErrorResponse(String requestNumber, String loanNumber, String error) {
