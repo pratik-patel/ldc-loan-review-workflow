@@ -79,6 +79,7 @@ public class LoanStatusDeterminationHandler implements Function<JsonNode, JsonNo
             com.ldc.workflow.types.WorkflowState state = stateOpt.get();
             state.setLoanStatus(loanStatus);
             state.setLoanDecision(loanStatus); // Also set loanDecision for consistency
+            state.setCurrentWorkflowStage(WorkflowConstants.STAGE_LOAN_STATUS_DETERMINED_PREFIX + loanStatus);
             state.setUpdatedAt(java.time.Instant.now().toString());
 
             // Save updated state to database

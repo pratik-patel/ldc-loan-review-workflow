@@ -186,10 +186,45 @@ public class WorkflowState {
         this.stateTransitionHistory = stateTransitionHistory;
     }
 
+    @JsonProperty("taskNumber")
+    private Integer taskNumber;
+
+    @JsonProperty("currentWorkflowStage")
+    private String currentWorkflowStage;
+
+    @JsonProperty("retryCount")
+    private Integer retryCount = 0;
+
     public void addStateTransition(StateTransition transition) {
         if (this.stateTransitionHistory == null) {
             this.stateTransitionHistory = new ArrayList<>();
         }
         this.stateTransitionHistory.add(transition);
+    }
+
+    // New Getters and Setters
+
+    public Integer getTaskNumber() {
+        return taskNumber;
+    }
+
+    public void setTaskNumber(Integer taskNumber) {
+        this.taskNumber = taskNumber;
+    }
+
+    public String getCurrentWorkflowStage() {
+        return currentWorkflowStage;
+    }
+
+    public void setCurrentWorkflowStage(String currentWorkflowStage) {
+        this.currentWorkflowStage = currentWorkflowStage;
+    }
+
+    public Integer getRetryCount() {
+        return retryCount;
+    }
+
+    public void setRetryCount(Integer retryCount) {
+        this.retryCount = retryCount;
     }
 }

@@ -123,6 +123,9 @@ public class StartPpaReviewApiHandler implements Function<JsonNode, JsonNode> {
                 state.setExecutionId(executionArn);
                 state.setStatus("RUNNING");
                 state.setWorkflowStateName("ValidateReviewType");
+                state.setCurrentWorkflowStage(WorkflowConstants.STAGE_REVIEW_INITIATED);
+                state.setTaskNumber(request.getTaskNumber());
+                state.setRetryCount(0);
                 state.setCurrentAssignedUsername(
                         request.getReviewStepUserId() != null ? request.getReviewStepUserId() : "System");
                 state.setCreatedAt(Instant.now().toString());

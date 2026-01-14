@@ -61,8 +61,12 @@ public class RegisterCallbackHandler implements Function<JsonNode, JsonNode> {
 
             WorkflowState state = stateOpt.get();
             state.setTaskToken(taskToken);
-            if (isReclassConfirmation) {
-                state.setIsReclassConfirmation(true);
+            state.setIsReclassConfirmation(isReclassConfirmation);
+
+            if (Boolean.TRUE.equals(isReclassConfirmation)) {
+                state.setCurrentWorkflowStage(WorkflowConstants.STAGE_WAITING_FOR_RECLASS_CONFIRMATION);
+            } else {
+                state.setCurrentWorkflowStage(WorkflowConstants.STAGE_WAITING_FOR_LOAN_DECISION);
             }
 
             // Save updates the entity with the new token

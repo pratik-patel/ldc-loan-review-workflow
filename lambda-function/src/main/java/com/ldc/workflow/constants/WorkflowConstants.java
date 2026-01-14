@@ -44,4 +44,11 @@ public final class WorkflowConstants {
     public static final String DECISION_RECLASS = "Reclass";
     public static final String DECISION_RECLASS_APPROVED = "Reclass Approved";
     public static final String STATUS_PENDING = "Pending";
+
+    // Workflow Stages
+    public static final String STAGE_REVIEW_INITIATED = "Review Initiated";
+    public static final String STAGE_WAITING_FOR_LOAN_DECISION = "Waiting for Loan Decision";
+    public static final String STAGE_WAITING_FOR_RECLASS_CONFIRMATION = "Waiting for Reclass Confirmation";
+    public static final String STAGE_LOAN_DECISION_RECEIVED = "Loan Decision Received";
+    public static final String STAGE_LOAN_STATUS_DETERMINED_PREFIX = "Loan Status Determined: ";
 }

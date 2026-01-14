@@ -118,6 +118,8 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
                 state.setAttributes(updatedAttributes);
             }
 
+            state.setCurrentWorkflowStage(WorkflowConstants.STAGE_LOAN_DECISION_RECEIVED);
+
             // Save updated state
             workflowStateRepository.save(state);
             logger.info("Loan decision updated successfully for requestNumber: {}", requestNumber);
