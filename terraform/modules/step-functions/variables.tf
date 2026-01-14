@@ -34,6 +34,11 @@ variable "reclass_timer_seconds" {
 }
 
 variable "lambda_function_name" {
-  description = "Name of the Lambda function to invoke"
+  description = "Name of the Lambda function"
+  type        = string
+}
+
+variable "lambda_qualified_arn" {
+  description = "Qualified ARN of Lambda function with alias (for SnapStart)"
   type        = string
 }

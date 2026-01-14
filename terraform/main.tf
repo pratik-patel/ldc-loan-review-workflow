@@ -86,15 +86,14 @@ module "lambda" {
 module "step_functions" {
   source = "./modules/step-functions"
 
-  state_machine_name     = var.step_functions_state_machine_name
-  environment            = var.environment
-  state_machine_role_arn = module.iam.step_functions_role_arn
-  log_retention_days     = var.cloudwatch_log_retention_days
-
-  lambda_functions_ready = module.lambda.function_arn
-  lambda_function_name   = var.lambda_function_name
-
-  reclass_timer_seconds = var.reclass_timer_seconds
+  state_machine_name      = "ldc-loan-review-workflow"
+  lambda_function_name    = module.lambda.function_name
+  lambda_qualified_arn    = module.lambda.function_qualified_arn
+  state_machine_role_arn  = module.iam.step_functions_role_arn
+  environment             = var.environment
+  log_retention_days      = var.cloudwatch_log_retention_days
+  reclass_timer_seconds   = var.reclass_timer_seconds
+  lambda_functions_ready  = module.lambda.function_arn
 }
 
 # CloudWatch Logs

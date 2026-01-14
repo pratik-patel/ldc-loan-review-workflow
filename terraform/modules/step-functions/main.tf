@@ -10,8 +10,7 @@ terraform {
 # Read the Step Functions definition
 locals {
   state_machine_definition = templatefile("${path.module}/definition.asl.json", {
-    reclass_timer_seconds = var.reclass_timer_seconds
-    lambda_function_name  = var.lambda_function_name
+    lambda_function_name = var.lambda_qualified_arn  # Use qualified ARN with alias for SnapStart
   })
 }
 

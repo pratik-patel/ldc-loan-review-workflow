@@ -68,6 +68,12 @@ resource "aws_lambda_function" "ldc_loan_review" {
     mode = "Active"
   }
 
+  # SnapStart for faster cold starts (Java-specific)
+  # Reduces Spring Boot initialization from 11-12s to 1-2s
+  snap_start {
+    apply_on = "PublishedVersions"
+  }
+
   depends_on = []
 
   lifecycle {
@@ -80,9 +86,22 @@ resource "aws_lambda_function" "ldc_loan_review" {
   }
 }
 
+# Publish a new Lambda version on every deploy (for SnapStart)
+resource "aws_lambda_alias" "live" {
+  name             = "live"
+  description      = "Live alias for SnapStart - points to latest published version"
+  function_name    = aws_lambda_function.ldc_loan_review.function_name
+  function_version = aws_lambda_function.ldc_loan_review.version
+
+  lifecycle {
+    ignore_changes = [function_version]
+  }
+}
+
 # Lambda Function URL (optional, for testing)
 resource "aws_lambda_function_url" "ldc_loan_review" {
   function_name      = aws_lambda_function.ldc_loan_review.function_name
+  qualifier          = aws_lambda_alias.live.name  # Use alias instead of $LATEST
   authorization_type = "NONE"
   cors {
     allow_credentials = false
@@ -102,6 +121,11 @@ output "function_arn" {
 output "function_name" {
   value       = aws_lambda_function.ldc_loan_review.function_name
   description = "Name of the Lambda function"
+}
+
+output "function_qualified_arn" {
+  value       = aws_lambda_alias.live.arn
+  description = "ARN of the Lambda function with live alias (for SnapStart)"
 }
 
 output "function_url" {
