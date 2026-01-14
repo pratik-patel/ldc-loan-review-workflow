@@ -73,8 +73,8 @@ echo "$RESPONSE_2" | jq '.'
 # Validate duplicate is rejected
 echo -e "\n${YELLOW}Validating duplicate prevention...${NC}"
 
-if echo "$RESPONSE_2" | jq -e '.error' > /dev/null; then
-  ERROR_MSG=$(echo "$RESPONSE_2" | jq -r '.error // .message // "unknown"')
+if echo "$RESPONSE_2" | jq -e '.Error // .error' > /dev/null 2>&1; then
+  ERROR_MSG=$(echo "$RESPONSE_2" | jq -r '.Error // .error // .message // "unknown"')
   if echo "$ERROR_MSG" | grep -iq "already exists\|duplicate\|active"; then
     echo -e "${GREEN}✓ Duplicate execution correctly prevented${NC}"
     echo -e "${GREEN}  Error message: $ERROR_MSG${NC}"

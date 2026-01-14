@@ -1,31 +1,27 @@
 package com.ldc.workflow.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import software.amazon.awssdk.services.sfn.SfnClient;
+import software.amazon.awssdk.services.sfn.model.StartExecutionRequest;
+import software.amazon.awssdk.services.sfn.model.StartExecutionResponse;
+import software.amazon.awssdk.services.sfn.model.SendTaskSuccessRequest;
+import software.amazon.awssdk.services.sfn.model.SendTaskFailureRequest;
 
 /**
  * Service for interacting with AWS Step Functions API.
- * Uses HTTP client to call Step Functions SendTaskSuccess API.
+ * Uses AWS SDK v2 for proper authentication and authorization.
  */
 @Service
 public class StepFunctionsService {
 
     private static final Logger logger = LoggerFactory.getLogger(StepFunctionsService.class);
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-    private static final String STEP_FUNCTIONS_ENDPOINT = "https://states.%s.amazonaws.com/";
-    private static final String AWS_REGION = System.getenv("AWS_REGION");
-
-    private final HttpClient httpClient;
+    private final SfnClient sfnClient;
 
     public StepFunctionsService() {
-        this.httpClient = HttpClient.newHttpClient();
+        // AWS SDK v2 automatically handles credentials from Lambda environment
+        this.sfnClient = SfnClient.builder().build();
     }
 
     /**
@@ -33,35 +29,16 @@ public class StepFunctionsService {
      */
     public String startExecution(String stateMachineArn, String executionName, String input) {
         try {
-            String region = AWS_REGION != null ? AWS_REGION : "us-east-1";
-            String endpoint = String.format(STEP_FUNCTIONS_ENDPOINT, region);
-
-            // Create request body
-            String requestBody = objectMapper.writeValueAsString(
-                    new StartExecutionRequest(stateMachineArn, executionName, input));
-
-            // Create HTTP request
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(endpoint))
-                    .header("Content-Type", "application/x-amz-json-1.0")
-                    .header("X-Amz-Target", "AWSStepFunctions.StartExecution")
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+            StartExecutionRequest request = StartExecutionRequest.builder()
+                    .stateMachineArn(stateMachineArn)
+                    .name(executionName)
+                    .input(input)
                     .build();
 
-            // Send request
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            StartExecutionResponse response = sfnClient.startExecution(request);
 
-            if (response.statusCode() != 200) {
-                logger.error("Step Functions StartExecution failed with status: {}, body: {}",
-                        response.statusCode(), response.body());
-                throw new RuntimeException("Step Functions StartExecution failed: " + response.statusCode());
-            }
-
-            logger.info("Step Function execution started: {}", executionName);
-
-            // Parse response to get execution ARN
-            var responseObj = objectMapper.readTree(response.body());
-            return responseObj.get("executionArn").asText();
+            logger.info("Step Function execution started: {}", response.executionArn());
+            return response.executionArn();
         } catch (Exception e) {
             logger.error("Error starting Step Function execution", e);
             throw new RuntimeException("Failed to start Step Function execution", e);
@@ -73,112 +50,35 @@ public class StepFunctionsService {
      */
     public void sendTaskSuccess(String taskToken, String output) {
         try {
-            String region = AWS_REGION != null ? AWS_REGION : "us-east-1";
-            String endpoint = String.format(STEP_FUNCTIONS_ENDPOINT, region);
-
-            // Create request body
-            String requestBody = objectMapper.writeValueAsString(new SendTaskSuccessRequest(taskToken, output));
-
-            // Create HTTP request
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(endpoint))
-                    .header("Content-Type", "application/x-amz-json-1.0")
-                    .header("X-Amz-Target", "AWSStepFunctions.SendTaskSuccess")
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+            SendTaskSuccessRequest request = SendTaskSuccessRequest.builder()
+                    .taskToken(taskToken)
+                    .output(output)
                     .build();
 
-            // Send request
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() != 200) {
-                logger.error("Step Functions SendTaskSuccess failed with status: {}, body: {}",
-                        response.statusCode(), response.body());
-                throw new RuntimeException("Step Functions API call failed: " + response.statusCode());
-            }
-
+            sfnClient.sendTaskSuccess(request);
             logger.info("Task success sent to Step Functions");
         } catch (Exception e) {
             logger.error("Error sending task success to Step Functions", e);
-            throw new RuntimeException("Failed to send task success to Step Functions", e);
+            throw new RuntimeException("Failed to send task success", e);
         }
     }
 
     /**
-     * Send task failure to Step Functions to fail execution.
+     * Send task failure to Step Functions.
      */
     public void sendTaskFailure(String taskToken, String error, String cause) {
         try {
-            String region = AWS_REGION != null ? AWS_REGION : "us-east-1";
-            String endpoint = String.format(STEP_FUNCTIONS_ENDPOINT, region);
-
-            // Create request body
-            String requestBody = objectMapper.writeValueAsString(
-                    new SendTaskFailureRequest(taskToken, error, cause));
-
-            // Create HTTP request
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(endpoint))
-                    .header("Content-Type", "application/x-amz-json-1.0")
-                    .header("X-Amz-Target", "AWSStepFunctions.SendTaskFailure")
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+            SendTaskFailureRequest request = SendTaskFailureRequest.builder()
+                    .taskToken(taskToken)
+                    .error(error)
+                    .cause(cause)
                     .build();
 
-            // Send request
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() != 200) {
-                logger.error("Step Functions SendTaskFailure failed with status: {}, body: {}",
-                        response.statusCode(), response.body());
-                throw new RuntimeException("Step Functions API call failed: " + response.statusCode());
-            }
-
+            sfnClient.sendTaskFailure(request);
             logger.info("Task failure sent to Step Functions");
         } catch (Exception e) {
             logger.error("Error sending task failure to Step Functions", e);
             throw new RuntimeException("Failed to send task failure to Step Functions", e);
-        }
-    }
-
-    /**
-     * Request body for StartExecution API.
-     */
-    public static class StartExecutionRequest {
-        public String stateMachineArn;
-        public String name;
-        public String input;
-
-        public StartExecutionRequest(String stateMachineArn, String name, String input) {
-            this.stateMachineArn = stateMachineArn;
-            this.name = name;
-            this.input = input;
-        }
-    }
-
-    /**
-     * Request body for SendTaskSuccess API.
-     */
-    public static class SendTaskSuccessRequest {
-        public String taskToken;
-        public String output;
-
-        public SendTaskSuccessRequest(String taskToken, String output) {
-            this.taskToken = taskToken;
-            this.output = output;
-        }
-    }
-
-    /**
-     * Request body for SendTaskFailure API.
-     */
-    public static class SendTaskFailureRequest {
-        public String taskToken;
-        public String error;
-        public String cause;
-
-        public SendTaskFailureRequest(String taskToken, String error, String cause) {
-            this.taskToken = taskToken;
-            this.error = error;
-            this.cause = cause;
         }
     }
 }

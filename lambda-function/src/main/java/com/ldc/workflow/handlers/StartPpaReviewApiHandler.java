@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
@@ -127,8 +128,27 @@ public class StartPpaReviewApiHandler implements Function<JsonNode, JsonNode> {
                 state.setCreatedAt(Instant.now().toString());
                 state.setUpdatedAt(Instant.now().toString());
 
+                // Persist initial attributes with Pending status
+                if (request.getAttributes() != null && !request.getAttributes().isEmpty()) {
+                    List<com.ldc.workflow.types.LoanAttribute> initialAttributes = request.getAttributes().stream()
+                            .map(attr -> {
+                                com.ldc.workflow.types.LoanAttribute loanAttr = new com.ldc.workflow.types.LoanAttribute();
+                                loanAttr.setAttributeName(attr.getName());
+                                loanAttr.setAttributeDecision(
+                                        attr.getDecision() != null ? attr.getDecision() : "Pending");
+                                return loanAttr;
+                            })
+                            .collect(java.util.stream.Collectors.toList());
+                    state.setAttributes(initialAttributes);
+                }
+
+                // Set initial loan decision as "Pending Review"
+                state.setLoanDecision("Pending Review");
+
                 workflowStateRepository.save(state);
-                logger.info("Workflow state persisted for RequestNumber: {}", request.getRequestNumber());
+                logger.info("Workflow state persisted for RequestNumber: {} with {} attributes",
+                        request.getRequestNumber(),
+                        request.getAttributes() != null ? request.getAttributes().size() : 0);
             } catch (Exception e) {
                 logger.error("Failed to persist workflow state", e);
                 // Continue - execution already started
