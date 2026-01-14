@@ -126,13 +126,24 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
             String tokenToUse = inputTaskToken;
             if (tokenToUse == null || tokenToUse.isEmpty()) {
                 tokenToUse = state.getTaskToken();
+                logger.debug("No taskToken in input, using DB token: {}",
+                        tokenToUse != null ? tokenToUse.substring(0, Math.min(20, tokenToUse.length())) + "..."
+                                : "null");
             }
 
-            if (tokenToUse != null) {
+            if (tokenToUse != null && !tokenToUse.isEmpty()) {
                 // Resume Step Functions execution
+                logger.info("Resuming Step Functions for Request: {} with token", requestNumber);
                 resumeStepFunctionsExecution(tokenToUse, state);
+                logger.info("Step Functions resumed successfully for Request: {}", requestNumber);
             } else {
-                logger.warn("No Task Token found in input or DB. Cannot resume workflow.");
+                logger.error("CRITICAL: No Task Token available for Request: {}. Workflow will NOT resume! " +
+                        "DB token: {}, Input token: {}",
+                        requestNumber,
+                        state.getTaskToken(),
+                        inputTaskToken);
+                // Still return success for API compatibility, but workflow won't resume
+                // This allows tests to detect the issue via execution status
             }
 
             return createSuccessResponse(requestNumber, loanNumber, loanDecision);
@@ -146,12 +157,18 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
 
     private void resumeStepFunctionsExecution(String taskToken, WorkflowState state) {
         try {
+            logger.debug("Preparing to send task success for Request: {}", state.getRequestNumber());
             String output = objectMapper.writeValueAsString(state);
+            logger.debug("Calling stepFunctionsService.sendTaskSuccess with {} bytes of output", output.length());
+
             stepFunctionsService.sendTaskSuccess(taskToken, output);
-            logger.info("Step Functions execution resumed successfully, taskToken: {}", taskToken);
+
+            logger.info("✓ Step Functions callback SUCCESS for Request: {}, Loan: {}",
+                    state.getRequestNumber(), state.getLoanNumber());
         } catch (Exception e) {
-            logger.error("Error resuming Step Functions execution", e);
-            throw new RuntimeException("Failed to resume Step Functions execution", e);
+            logger.error("✗ FAILED to resume Step Functions for Request: {}, Error: {}",
+                    state.getRequestNumber(), e.getMessage(), e);
+            throw new RuntimeException("Failed to resume Step Functions execution: " + e.getMessage(), e);
         }
     }
 
