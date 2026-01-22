@@ -40,9 +40,6 @@ class LoanReviewRouterTest {
     @Mock
     private VendPpaIntegrationHandler vendPpaIntegrationHandler;
 
-    @Mock
-    private AuditTrailHandler auditTrailHandler;
-
     @InjectMocks
     private LoanReviewRouter router;
 
@@ -118,24 +115,6 @@ class LoanReviewRouterTest {
         ObjectNode mockResponse = objectMapper.createObjectNode();
         mockResponse.put(WorkflowConstants.KEY_SUCCESS, true);
         when(vendPpaIntegrationHandler.apply(any())).thenReturn(mockResponse);
-
-        // Act
-        JsonNode result = router.apply(input);
-
-        // Assert
-        assertTrue(result.get(WorkflowConstants.KEY_SUCCESS).asBoolean());
-    }
-
-    @Test
-    @DisplayName("Should route to auditTrail handler")
-    void testRouteToAuditTrail() {
-        // Arrange
-        ObjectNode input = objectMapper.createObjectNode();
-        input.put(WorkflowConstants.KEY_HANDLER_TYPE, WorkflowConstants.HANDLER_AUDIT_TRAIL);
-
-        ObjectNode mockResponse = objectMapper.createObjectNode();
-        mockResponse.put(WorkflowConstants.KEY_SUCCESS, true);
-        when(auditTrailHandler.apply(any())).thenReturn(mockResponse);
 
         // Act
         JsonNode result = router.apply(input);

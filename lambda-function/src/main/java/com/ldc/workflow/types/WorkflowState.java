@@ -186,9 +186,6 @@ public class WorkflowState {
         this.stateTransitionHistory = stateTransitionHistory;
     }
 
-    @JsonProperty("taskNumber")
-    private Integer taskNumber;
-
     @JsonProperty("currentWorkflowStage")
     private String currentWorkflowStage;
 
@@ -203,14 +200,6 @@ public class WorkflowState {
     }
 
     // New Getters and Setters
-
-    public Integer getTaskNumber() {
-        return taskNumber;
-    }
-
-    public void setTaskNumber(Integer taskNumber) {
-        this.taskNumber = taskNumber;
-    }
 
     public String getCurrentWorkflowStage() {
         return currentWorkflowStage;

@@ -1,6 +1,7 @@
 package com.ldc.workflow.business;
 
 import com.ldc.workflow.types.LoanAttribute;
+import com.ldc.workflow.constants.WorkflowConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -36,7 +37,7 @@ public class CompletionCriteriaChecker {
         boolean allAttributesComplete = attributes.stream()
                 .allMatch(attr -> {
                     String decision = attr.getAttributeDecision();
-                    return decision != null && !"Pending".equals(decision);
+                    return decision != null && !WorkflowConstants.STATUS_PENDING.equals(decision);
                 });
 
         if (!allAttributesComplete) {
@@ -59,7 +60,7 @@ public class CompletionCriteriaChecker {
         return attributes.stream()
                 .filter(attr -> {
                     String decision = attr.getAttributeDecision();
-                    return decision == null || "Pending".equals(decision);
+                    return decision == null || WorkflowConstants.STATUS_PENDING.equals(decision);
                 })
                 .toList();
     }
@@ -77,7 +78,7 @@ public class CompletionCriteriaChecker {
             String incompleteNames = incompleteAttrs.stream()
                     .map(LoanAttribute::getAttributeName)
                     .reduce((a, b) -> a + ", " + b)
-                    .orElse("unknown");
+                    .orElse(WorkflowConstants.DEFAULT_UNKNOWN);
             return "The following attributes are incomplete (Pending or null): " + incompleteNames;
         }
 

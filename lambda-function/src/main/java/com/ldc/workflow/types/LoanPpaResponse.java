@@ -16,8 +16,6 @@ public class LoanPpaResponse {
     }
 
     public static class Workflow {
-        @JsonProperty("TaskNumber")
-        private Integer taskNumber;
 
         @JsonProperty("RequestNumber")
         private String requestNumber;
@@ -44,13 +42,6 @@ public class LoanPpaResponse {
         private List<StateTransition> stateTransitionHistory;
 
         // Getters and Setters
-        public Integer getTaskNumber() {
-            return taskNumber;
-        }
-
-        public void setTaskNumber(Integer taskNumber) {
-            this.taskNumber = taskNumber;
-        }
 
         public String getRequestNumber() {
             return requestNumber;

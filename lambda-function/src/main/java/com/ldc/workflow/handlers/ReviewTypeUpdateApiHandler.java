@@ -2,6 +2,7 @@ package com.ldc.workflow.handlers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ldc.workflow.constants.WorkflowConstants;
 import com.ldc.workflow.repository.WorkflowStateRepository;
 import com.ldc.workflow.service.StepFunctionsService;
@@ -21,7 +22,7 @@ import java.util.function.Function;
  * Input: JSON with requestNumber, executionId, newReviewType, taskToken
  * Output: JSON with update status
  */
-@Component("reviewTypeUpdateApiHandler")
+@Component("assignToType")
 public class ReviewTypeUpdateApiHandler implements Function<JsonNode, JsonNode> {
 
     private static final Logger logger = LoggerFactory.getLogger(ReviewTypeUpdateApiHandler.class);
@@ -47,7 +48,8 @@ public class ReviewTypeUpdateApiHandler implements Function<JsonNode, JsonNode> 
             context = objectMapper.treeToValue(input, com.ldc.workflow.types.WorkflowContext.class);
         } catch (Exception e) {
             logger.error("Error parsing input JSON", e);
-            return createErrorResponse("unknown", "unknown", "Invalid JSON format");
+            return createErrorResponse(WorkflowConstants.DEFAULT_UNKNOWN, WorkflowConstants.DEFAULT_UNKNOWN,
+                    "Invalid JSON format");
         }
 
         try {
@@ -60,8 +62,9 @@ public class ReviewTypeUpdateApiHandler implements Function<JsonNode, JsonNode> 
             String taskToken = context.getTaskToken();
 
             if (requestNumber == null || loanNumber == null || newReviewType == null || taskToken == null) {
-                String reqNum = requestNumber != null ? requestNumber : "unknown";
-                return createErrorResponse(reqNum, (loanNumber != null ? loanNumber : "unknown"),
+                String reqNum = requestNumber != null ? requestNumber : WorkflowConstants.DEFAULT_UNKNOWN;
+                return createErrorResponse(reqNum,
+                        (loanNumber != null ? loanNumber : WorkflowConstants.DEFAULT_UNKNOWN),
                         "Missing required fields: requestNumber, loanNumber, newReviewType, taskToken");
             }
 
@@ -99,14 +102,19 @@ public class ReviewTypeUpdateApiHandler implements Function<JsonNode, JsonNode> 
             return createSuccessResponse(requestNumber, loanNumber, newReviewType);
         } catch (Exception e) {
             logger.error("Error in review type update API handler", e);
-            return createErrorResponse("unknown", "unknown", "Internal error: " + e.getMessage());
+            return createErrorResponse(WorkflowConstants.DEFAULT_UNKNOWN, WorkflowConstants.DEFAULT_UNKNOWN,
+                    "Internal error: " + e.getMessage());
         }
     }
 
     private void resumeStepFunctionsExecution(String taskToken, WorkflowState state) {
         try {
             String output = objectMapper.writeValueAsString(state);
-            stepFunctionsService.sendTaskSuccess(taskToken, output);
+            // Convert to ObjectNode to add transient field
+            ObjectNode outputNode = (ObjectNode) objectMapper.readTree(output);
+            outputNode.put(WorkflowConstants.KEY_RESUMED_ACTION, WorkflowConstants.ACTION_REVIEW_TYPE_UPDATE);
+
+            stepFunctionsService.sendTaskSuccess(taskToken, objectMapper.writeValueAsString(outputNode));
             logger.info("Step Functions execution resumed successfully, taskToken: {}", taskToken);
         } catch (Exception e) {
             logger.error("Error resuming Step Functions execution", e);

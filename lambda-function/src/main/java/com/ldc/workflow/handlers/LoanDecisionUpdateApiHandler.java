@@ -27,7 +27,7 @@ import java.util.function.Function;
  * taskToken
  * Output: JSON with update status
  */
-@Component("loanDecisionUpdateApiHandler")
+@Component("getNextStep")
 public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode> {
 
     private static final Logger logger = LoggerFactory.getLogger(LoanDecisionUpdateApiHandler.class);
@@ -53,12 +53,13 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
             context = objectMapper.treeToValue(input, com.ldc.workflow.types.WorkflowContext.class);
         } catch (Exception e) {
             logger.error("Error parsing input JSON", e);
-            return createErrorResponse("unknown", "unknown", "Invalid JSON format");
+            return createErrorResponse(WorkflowConstants.DEFAULT_UNKNOWN, WorkflowConstants.DEFAULT_UNKNOWN,
+                    "Invalid JSON format");
         }
 
         String requestNumber = context.getRequestNumber();
         if (requestNumber == null)
-            requestNumber = "unknown";
+            requestNumber = WorkflowConstants.DEFAULT_UNKNOWN;
 
         try {
             logger.info("Loan Decision Update API handler invoked for Request: {}", requestNumber);
@@ -67,7 +68,8 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
 
             if (loanNumber == null || loanNumber.isEmpty()) {
                 logger.error("Missing required field: LoanNumber");
-                return createErrorResponse(requestNumber, "unknown", "Missing required field: LoanNumber");
+                return createErrorResponse(requestNumber, WorkflowConstants.DEFAULT_UNKNOWN,
+                        "Missing required field: LoanNumber");
             }
 
             String loanDecision = context.getLoanDecision();
@@ -152,7 +154,7 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
         } catch (Exception e) {
             logger.error("Error in loan decision update API handler for Request: " + requestNumber, e);
             return createErrorResponse(requestNumber,
-                    (context.getLoanNumber() != null ? context.getLoanNumber() : "unknown"),
+                    (context.getLoanNumber() != null ? context.getLoanNumber() : WorkflowConstants.DEFAULT_UNKNOWN),
                     "Internal error: " + e.getMessage());
         }
     }
@@ -161,9 +163,13 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
         try {
             logger.debug("Preparing to send task success for Request: {}", state.getRequestNumber());
             String output = objectMapper.writeValueAsString(state);
+            // Convert to ObjectNode to add transient field
+            ObjectNode outputNode = (ObjectNode) objectMapper.readTree(output);
+            outputNode.put(WorkflowConstants.KEY_RESUMED_ACTION, WorkflowConstants.STATE_LOAN_DECISION_UPDATE);
+
             logger.debug("Calling stepFunctionsService.sendTaskSuccess with {} bytes of output", output.length());
 
-            stepFunctionsService.sendTaskSuccess(taskToken, output);
+            stepFunctionsService.sendTaskSuccess(taskToken, objectMapper.writeValueAsString(outputNode));
 
             logger.info("✓ Step Functions callback SUCCESS for Request: {}, Loan: {}",
                     state.getRequestNumber(), state.getLoanNumber());
@@ -181,44 +187,47 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
                     requestNumber, loanNumber);
 
             ObjectNode response = objectMapper.createObjectNode();
-            ArrayNode workflows = response.putArray("workflows");
+            ArrayNode workflows = response.putArray(WorkflowConstants.KEY_WORKFLOWS);
             ObjectNode workflow = workflows.addObject();
 
             // Required fields per schema
-            workflow.put("RequestNumber", requestNumber);
-            workflow.put("LoanNumber", loanNumber);
+            workflow.put(WorkflowConstants.KEY_REQUEST_NUMBER, requestNumber);
+            workflow.put(WorkflowConstants.KEY_LOAN_NUMBER, loanNumber);
 
             // Add state fields if available
             if (stateOpt.isPresent()) {
                 WorkflowState state = stateOpt.get();
-                workflow.put("LoanDecision",
-                        state.getLoanDecision() != null ? state.getLoanDecision() : "Pending Review");
-                workflow.put("ReviewStep", mapReviewTypeToStep(state.getReviewType()));
-                workflow.put("WorkflowStateName",
-                        state.getWorkflowStateName() != null ? state.getWorkflowStateName() : "Processing");
-                workflow.put("CurrentWorkflowStage",
+                workflow.put(WorkflowConstants.KEY_LOAN_DECISION,
+                        state.getLoanDecision() != null ? state.getLoanDecision()
+                                : WorkflowConstants.STATUS_PENDING_REVIEW);
+                workflow.put(WorkflowConstants.KEY_REVIEW_STEP, mapReviewTypeToStep(state.getReviewType()));
+                workflow.put(WorkflowConstants.KEY_WORKFLOW_STATE_NAME,
+                        state.getWorkflowStateName() != null ? state.getWorkflowStateName()
+                                : WorkflowConstants.STATE_PROCESSING);
+                workflow.put(WorkflowConstants.KEY_CURRENT_WORKFLOW_STAGE,
                         state.getCurrentWorkflowStage() != null ? state.getCurrentWorkflowStage()
-                                : "Loan Decision Received");
-                workflow.put("Status",
-                        state.getStatus() != null ? state.getStatus() : "RUNNING");
-                workflow.put("TaskNumber", state.getTaskNumber());
-                workflow.put("RetryCount", state.getRetryCount());
-                workflow.put("ReviewStepUserId",
-                        state.getCurrentAssignedUsername() != null ? state.getCurrentAssignedUsername() : "System");
+                                : WorkflowConstants.STAGE_LOAN_DECISION_RECEIVED);
+                workflow.put(WorkflowConstants.KEY_STATUS,
+                        state.getStatus() != null ? state.getStatus() : WorkflowConstants.STATUS_RUNNING);
+
+                workflow.put(WorkflowConstants.KEY_RETRY_COUNT, state.getRetryCount());
+                workflow.put(WorkflowConstants.KEY_REVIEW_STEP_USER_ID,
+                        state.getCurrentAssignedUsername() != null ? state.getCurrentAssignedUsername()
+                                : WorkflowConstants.DEFAULT_SYSTEM_USER);
 
                 // Add attributes if present
                 if (state.getAttributes() != null && !state.getAttributes().isEmpty()) {
-                    ArrayNode attributes = workflow.putArray("Attributes");
+                    ArrayNode attributes = workflow.putArray(WorkflowConstants.KEY_ATTRIBUTES);
                     for (com.ldc.workflow.types.LoanAttribute attr : state.getAttributes()) {
                         ObjectNode attrNode = attributes.addObject();
-                        attrNode.put("Name", attr.getAttributeName());
-                        attrNode.put("Decision", attr.getAttributeDecision());
+                        attrNode.put(WorkflowConstants.KEY_NAME, attr.getAttributeName());
+                        attrNode.put(WorkflowConstants.KEY_DECISION, attr.getAttributeDecision());
                     }
                 }
             } else {
                 // Fallback values if state not found
-                workflow.put("LoanDecision", message);
-                workflow.put("WorkflowStateName", "Updated");
+                workflow.put(WorkflowConstants.KEY_LOAN_DECISION, message);
+                workflow.put(WorkflowConstants.KEY_WORKFLOW_STATE_NAME, WorkflowConstants.STATE_UPDATED);
             }
 
             return response;
@@ -234,16 +243,16 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
 
     private String mapReviewTypeToStep(String reviewType) {
         if (reviewType == null)
-            return "System Process";
+            return WorkflowConstants.REVIEW_STEP_SYSTEM;
         switch (reviewType) {
-            case "LDC":
-                return "LDC Review";
-            case "Sec Policy":
-                return "Sec Policy Review";
-            case "Conduit":
-                return "Conduit Review";
+            case WorkflowConstants.REVIEW_TYPE_LDC:
+                return WorkflowConstants.REVIEW_STEP_LDC;
+            case WorkflowConstants.REVIEW_TYPE_SEC_POLICY:
+                return WorkflowConstants.REVIEW_STEP_SEC_POLICY;
+            case WorkflowConstants.REVIEW_TYPE_CONDUIT:
+                return WorkflowConstants.REVIEW_STEP_CONDUIT;
             default:
-                return "System Process";
+                return WorkflowConstants.REVIEW_STEP_SYSTEM;
         }
     }
 

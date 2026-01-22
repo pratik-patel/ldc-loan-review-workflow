@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -46,11 +45,10 @@ public class LoanStatusDeterminationHandler implements Function<JsonNode, JsonNo
                     com.ldc.workflow.types.WorkflowContext.class);
 
             // Extract input fields
-            String requestNumber = context.getRequestNumber() != null ? context.getRequestNumber() : "unknown";
-            String loanNumber = context.getLoanNumber() != null ? context.getLoanNumber() : "unknown";
-            // ExecutionId is optional
-            String executionId = context.getExecutionId() != null ? context.getExecutionId()
-                    : "ldc-loan-review-" + requestNumber;
+            String requestNumber = context.getRequestNumber() != null ? context.getRequestNumber()
+                    : WorkflowConstants.DEFAULT_UNKNOWN;
+            String loanNumber = context.getLoanNumber() != null ? context.getLoanNumber()
+                    : WorkflowConstants.DEFAULT_UNKNOWN;
 
             logger.debug("Determining loan status for requestNumber: {}, loanNumber: {}",
                     requestNumber, loanNumber);
@@ -93,45 +91,15 @@ public class LoanStatusDeterminationHandler implements Function<JsonNode, JsonNo
             }
 
             // Return success response
-            return createSuccessResponse(requestNumber, loanNumber, loanStatus, attributes);
+            return createSuccessResponse(requestNumber, loanNumber, loanStatus);
         } catch (Exception e) {
             logger.error("Error in loan status determination handler", e);
-            return createErrorResponse("unknown", "unknown",
+            return createErrorResponse(WorkflowConstants.DEFAULT_UNKNOWN, WorkflowConstants.DEFAULT_UNKNOWN,
                     "Internal error: " + e.getMessage());
         }
     }
 
-    private List<LoanAttribute> extractAttributes(JsonNode input) {
-        List<LoanAttribute> attributes = new ArrayList<>();
-
-        if (!input.has("Attributes") || input.get("Attributes").isNull()) {
-            return attributes;
-        }
-
-        JsonNode attributesNode = input.get("Attributes");
-        if (!attributesNode.isArray()) {
-            return attributes;
-        }
-
-        for (JsonNode attrNode : attributesNode) {
-            String name = attrNode.has("Name") ? attrNode.get("Name").asText() : null;
-            String decision = attrNode.has("Decision") && !attrNode.get("Decision").isNull()
-                    ? attrNode.get("Decision").asText()
-                    : null;
-
-            if (name != null) {
-                LoanAttribute attr = new LoanAttribute();
-                attr.setAttributeName(name);
-                attr.setAttributeDecision(decision);
-                attributes.add(attr);
-            }
-        }
-
-        return attributes;
-    }
-
-    private JsonNode createSuccessResponse(String requestNumber, String loanNumber, String status,
-            List<LoanAttribute> attributes) {
+    private JsonNode createSuccessResponse(String requestNumber, String loanNumber, String status) {
         return objectMapper.createObjectNode()
                 .put(WorkflowConstants.KEY_SUCCESS, true)
                 .put(WorkflowConstants.KEY_REQUEST_NUMBER, requestNumber)

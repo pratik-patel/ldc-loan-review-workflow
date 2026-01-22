@@ -34,7 +34,8 @@ public class RegisterCallbackHandler implements Function<JsonNode, JsonNode> {
             context = objectMapper.treeToValue(input, com.ldc.workflow.types.WorkflowContext.class);
         } catch (Exception e) {
             logger.error("Error parsing input JSON", e);
-            return createErrorResponse("unknown", "unknown", "Invalid JSON format");
+            return createErrorResponse(WorkflowConstants.DEFAULT_UNKNOWN, WorkflowConstants.DEFAULT_UNKNOWN,
+                    "Invalid JSON format");
         }
 
         String requestNumber = context.getRequestNumber();

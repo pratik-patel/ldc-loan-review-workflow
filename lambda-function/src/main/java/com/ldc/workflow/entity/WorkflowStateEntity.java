@@ -24,9 +24,6 @@ public class WorkflowStateEntity {
     @Column(name = "loan_number", nullable = false)
     private String loanNumber;
 
-    @Column(name = "task_number")
-    private String taskNumber;
-
     @Column(name = "review_type", nullable = false)
     private String reviewType;
 
@@ -45,7 +42,7 @@ public class WorkflowStateEntity {
     @Column(name = "current_assigned_username")
     private String currentAssignedUsername;
 
-    @Column(name = "task_token")
+    @Column(name = "task_token", columnDefinition = "TEXT")
     private String taskToken;
 
     @Column(name = "retry_count")
@@ -93,14 +90,6 @@ public class WorkflowStateEntity {
 
     public void setLoanNumber(String loanNumber) {
         this.loanNumber = loanNumber;
-    }
-
-    public String getTaskNumber() {
-        return taskNumber;
-    }
-
-    public void setTaskNumber(String taskNumber) {
-        this.taskNumber = taskNumber;
     }
 
     public String getReviewType() {

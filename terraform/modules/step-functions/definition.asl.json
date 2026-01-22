@@ -13,7 +13,10 @@
           "LoanNumber.$": "$.LoanNumber",
           "ReviewType.$": "$.ReviewType",
           "ReviewStepUserId.$": "$.ReviewStepUserId",
-          "Attributes.$": "$.Attributes"
+          "Attributes.$": "$.Attributes",
+          "ExecutionId.$": "$$.Execution.Id",
+          "StateName.$": "$$.State.Name",
+          "EnteredTime.$": "$$.State.EnteredTime"
         }
       },
       "ResultPath": "$.validationResult",
@@ -66,7 +69,18 @@
         }
       },
       "ResultPath": "$.loanDecisionResult",
-      "Next": "CheckCompletionCriteria"
+      "Next": "EvaluateResumptionAction"
+    },
+    "EvaluateResumptionAction": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.loanDecisionResult.ResumedAction",
+          "StringEquals": "ReviewTypeUpdate",
+          "Next": "ValidateReviewType"
+        }
+      ],
+      "Default": "CheckCompletionCriteria"
     },
     "CheckCompletionCriteria": {
       "Type": "Task",
@@ -124,7 +138,10 @@
         "Payload": {
           "handlerType": "loanStatusDetermination",
           "RequestNumber.$": "$.RequestNumber",
-          "LoanNumber.$": "$.LoanNumber"
+          "LoanNumber.$": "$.LoanNumber",
+          "ExecutionId.$": "$$.Execution.Id",
+          "StateName.$": "$$.State.Name",
+          "EnteredTime.$": "$$.State.EnteredTime"
         }
       },
       "ResultPath": "$.statusResult",
@@ -212,7 +229,10 @@
           "handlerType": "vendPpaIntegration",
           "RequestNumber.$": "$.RequestNumber",
           "LoanNumber.$": "$.LoanNumber",
-          "LoanStatus.$": "$.statusResult.Payload.LoanStatus"
+          "LoanStatus.$": "$.statusResult.Payload.LoanStatus",
+          "ExecutionId.$": "$$.Execution.Id",
+          "StateName.$": "$$.State.Name",
+          "EnteredTime.$": "$$.State.EnteredTime"
         }
       },
       "Retry": [

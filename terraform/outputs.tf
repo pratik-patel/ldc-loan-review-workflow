@@ -1,54 +1,20 @@
-output "lambda_function_arn" {
-  description = "ARN of the Lambda function"
-  value       = module.lambda.function_arn
+output "aws_region" {
+  value = var.aws_region
 }
 
 output "lambda_function_name" {
-  description = "Name of the Lambda function"
-  value       = module.lambda.function_name
+  value = module.lambda.function_name
 }
 
-output "lambda_function_url" {
-  description = "Function URL for testing"
-  value       = module.lambda.function_url
+output "lambda_function_arn" {
+  value = module.lambda.function_arn
 }
 
 output "step_functions_state_machine_arn" {
-  description = "ARN of the Step Functions state machine"
-  value       = module.step_functions.state_machine_arn
+  value = module.step_functions.state_machine_arn
 }
 
-output "step_functions_state_machine_name" {
-  description = "Name of the Step Functions state machine"
-  value       = module.step_functions.state_machine_name
-}
-
-output "cloudwatch_lambda_log_group" {
-  description = "CloudWatch log group for Lambda function"
-  value       = module.cloudwatch.lambda_log_group_name
-}
-
-output "cloudwatch_step_functions_log_group" {
-  description = "CloudWatch log group for Step Functions"
-  value       = module.cloudwatch.step_functions_log_group_name
-}
-
-output "parameter_store_prefix" {
-  description = "Parameter Store prefix for all configuration parameters"
-  value       = var.parameter_store_prefix
-}
-
-output "database_endpoint" {
-  description = "RDS Endpoint"
-  value       = module.database.endpoint
-}
-
-output "database_username" {
-  description = "Database Master Username"
-  value       = module.database.username
-}
-
-output "aws_region" {
-  description = "AWS Region"
-  value       = var.aws_region
+output "api_endpoint" {
+  description = "The public URI of the API Gateway"
+  value       = module.api_gateway.api_endpoint
 }

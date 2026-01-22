@@ -1,5 +1,6 @@
 package com.ldc.workflow.validation;
 
+import com.ldc.workflow.constants.WorkflowConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -17,10 +18,9 @@ public class ReviewTypeValidator {
 
     private static final Logger logger = LoggerFactory.getLogger(ReviewTypeValidator.class);
     private static final Set<String> ALLOWED_REVIEW_TYPES = new HashSet<>(Arrays.asList(
-            "LDCReview",
-            "SecPolicyReview",
-            "ConduitReview"
-    ));
+            WorkflowConstants.REVIEW_TYPE_LDC,
+            WorkflowConstants.REVIEW_TYPE_SEC_POLICY,
+            WorkflowConstants.REVIEW_TYPE_CONDUIT));
 
     /**
      * Validate that the review type is one of the allowed values.
@@ -49,7 +49,7 @@ public class ReviewTypeValidator {
      * Get error message for invalid review type.
      */
     public String getErrorMessage(String reviewType) {
-        return String.format("Invalid reviewType: '%s'. Must be one of: %s", 
+        return String.format("Invalid reviewType: '%s'. Must be one of: %s",
                 reviewType, String.join(", ", ALLOWED_REVIEW_TYPES));
     }
 }

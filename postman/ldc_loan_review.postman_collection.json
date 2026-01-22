@@ -1,0 +1,226 @@
+{
+    "info": {
+        "_postman_id": "b3e04758-1234-4567-8901-abcdef123456",
+        "name": "LDC Loan Review Workflow",
+        "description": "Collection for invoking Lambda functions consumed by MFE for the LDC Loan Review Workflow.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "1. Start Review",
+            "item": [
+                {
+                    "name": "Start LDC Review",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"RequestNumber\": \"{{RequestNumber}}\",\n  \"LoanNumber\": \"{{LoanNumber}}\",\n  \"ReviewType\": \"LDC\",\n  \"ReviewStepUserId\": \"postman_user\",\n  \"Attributes\": [\n    {\"Name\": \"CreditScore\", \"Decision\": \"Pending\"},\n    {\"Name\": \"DebtRatio\", \"Decision\": \"Pending\"}\n  ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/startPPAreview",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "startPPAreview"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Start SecPolicy Review",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"RequestNumber\": \"{{RequestNumber}}-SEC\",\n  \"LoanNumber\": \"{{LoanNumber}}\",\n  \"ReviewType\": \"Sec Policy\",\n  \"ReviewStepUserId\": \"postman_user\",\n  \"Attributes\": [\n    {\"Name\": \"ComplianceCheck\", \"Decision\": \"Pending\"}\n  ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/startPPAreview",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "startPPAreview"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Start Conduit Review",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"RequestNumber\": \"{{RequestNumber}}-CON\",\n  \"LoanNumber\": \"{{LoanNumber}}\",\n  \"ReviewType\": \"Conduit\",\n  \"ReviewStepUserId\": \"postman_user\",\n  \"Attributes\": [\n    {\"Name\": \"ConduitCompliance\", \"Decision\": \"Pending\"}\n  ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/startPPAreview",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "startPPAreview"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "2. Workflow Actions",
+            "item": [
+                {
+                    "name": "Update Decision (Approve)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"RequestNumber\": \"{{RequestNumber}}\",\n  \"LoanNumber\": \"{{LoanNumber}}\",\n  \"LoanDecision\": \"Approved\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/getNextStep",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "getNextStep"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Decision (Rejected)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"RequestNumber\": \"{{RequestNumber}}\",\n  \"LoanNumber\": \"{{LoanNumber}}\",\n  \"LoanDecision\": \"Rejected\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/getNextStep",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "getNextStep"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Assign To Type",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"RequestNumber\": \"{{RequestNumber}}\",\n  \"LoanNumber\": \"{{LoanNumber}}\",\n  \"NewReviewType\": \"{{reviewType}}\",\n  \"TaskToken\": \"{{TaskToken}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/assignToType",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "assignToType"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "const date = new Date();",
+                    "const timestamp = date.getTime();",
+                    "pm.variables.set(\"timestamp\", timestamp);",
+                    "",
+                    "if (!pm.variables.has(\"RequestNumber\") || pm.variables.get(\"RequestNumber\") === \"\") {",
+                    "    pm.variables.set(\"RequestNumber\", \"REQ-\" + timestamp);",
+                    "}"
+                ]
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "https://api-id.execute-api.region.amazonaws.com",
+            "type": "string"
+        },
+        {
+            "key": "LoanNumber",
+            "value": "1234567890",
+            "type": "string"
+        },
+        {
+            "key": "RequestNumber",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "reviewType",
+            "value": "LDC",
+            "type": "string"
+        },
+        {
+            "key": "TaskToken",
+            "value": "ENTER_TASK_TOKEN_HERE",
+            "type": "string"
+        }
+    ]
+}

@@ -74,6 +74,8 @@ resource "aws_lambda_function" "ldc_loan_review" {
     apply_on = "PublishedVersions"
   }
 
+  publish = true
+
   depends_on = []
 
   lifecycle {
@@ -92,10 +94,6 @@ resource "aws_lambda_alias" "live" {
   description      = "Live alias for SnapStart - points to latest published version"
   function_name    = aws_lambda_function.ldc_loan_review.function_name
   function_version = aws_lambda_function.ldc_loan_review.version
-
-  lifecycle {
-    ignore_changes = [function_version]
-  }
 }
 
 # Lambda Function URL (optional, for testing)
@@ -131,6 +129,11 @@ output "function_qualified_arn" {
 output "function_url" {
   value       = aws_lambda_function_url.ldc_loan_review.function_url
   description = "Function URL for testing"
+}
+
+output "function_invoke_arn" {
+  value       = aws_lambda_function.ldc_loan_review.invoke_arn
+  description = "Invoke ARN of the Lambda function for API Gateway"
 }
 
 

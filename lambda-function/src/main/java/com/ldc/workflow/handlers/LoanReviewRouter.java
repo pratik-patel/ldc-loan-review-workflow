@@ -48,9 +48,6 @@ public class LoanReviewRouter implements Function<JsonNode, JsonNode> {
     private VendPpaIntegrationHandler vendPpaIntegrationHandler;
 
     @Autowired(required = false)
-    private AuditTrailHandler auditTrailHandler;
-
-    @Autowired(required = false)
     private RegisterCallbackHandler registerCallbackHandler;
 
     @Autowired(required = false)
@@ -64,8 +61,28 @@ public class LoanReviewRouter implements Function<JsonNode, JsonNode> {
 
     @Override
     public JsonNode apply(JsonNode input) {
+        logger.info("[DEBUG-V2] LoanReviewRouter processing input: {}", input);
         try {
-            String handlerType = input.get(WorkflowConstants.KEY_HANDLER_TYPE).asText();
+            String handlerType = null;
+            if (input.has(WorkflowConstants.KEY_HANDLER_TYPE)) {
+                handlerType = input.get(WorkflowConstants.KEY_HANDLER_TYPE).asText();
+            } else {
+                // Infer handler type from payload for API Gateway requests
+                if (input.has(WorkflowConstants.KEY_REVIEW_TYPE) && input.has(WorkflowConstants.KEY_REQUEST_NUMBER)) {
+                    handlerType = WorkflowConstants.HANDLER_START_PPA_REVIEW_API;
+                } else if (input.has(WorkflowConstants.KEY_LOAN_DECISION)
+                        && input.has(WorkflowConstants.KEY_REQUEST_NUMBER)) {
+                    handlerType = WorkflowConstants.HANDLER_LOAN_DECISION_UPDATE_API;
+                } else if (input.has("NewReviewType") && input.has(WorkflowConstants.KEY_REQUEST_NUMBER)) {
+                    handlerType = WorkflowConstants.HANDLER_REVIEW_TYPE_UPDATE_API;
+                }
+            }
+
+            if (handlerType == null) {
+                logger.error("Missing handlerType and unable to infer from payload");
+                return createErrorResponse("Missing handlerType and unable to infer from payload");
+            }
+
             logger.info("Routing to handler: {}", handlerType);
 
             return switch (handlerType) {
@@ -115,12 +132,6 @@ public class LoanReviewRouter implements Function<JsonNode, JsonNode> {
             logger.error("Error routing request", e);
             return createErrorResponse("Internal server error: " + e.getMessage());
         }
-    }
-
-    private JsonNode createSuccessResponse(String message) {
-        return objectMapper.createObjectNode()
-                .put(WorkflowConstants.KEY_SUCCESS, true)
-                .put(WorkflowConstants.KEY_MESSAGE, message);
     }
 
     private JsonNode createErrorResponse(String message) {

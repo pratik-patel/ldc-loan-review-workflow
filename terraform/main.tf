@@ -111,6 +111,17 @@ module "cloudwatch" {
   log_retention_days = var.cloudwatch_log_retention_days
 }
 
+# API Gateway
+module "api_gateway" {
+  source = "./modules/api-gateway"
+
+  environment = var.environment
+  
+  lambda_function_name       = module.lambda.function_name
+  lambda_function_invoke_arn = module.lambda.function_invoke_arn
+  log_retention_days         = var.cloudwatch_log_retention_days
+}
+
 # Parameter Store Configuration
 module "parameter_store" {
   source = "./modules/parameter-store"

@@ -46,12 +46,15 @@ public class CompletionCriteriaHandler implements Function<JsonNode, JsonNode> {
             context = objectMapper.treeToValue(input, com.ldc.workflow.types.WorkflowContext.class);
         } catch (Exception e) {
             logger.error("Error parsing input JSON", e);
-            return createSuccessResponse("unknown", "unknown", false, List.of("Invalid JSON format"));
+            return createSuccessResponse(WorkflowConstants.DEFAULT_UNKNOWN, WorkflowConstants.DEFAULT_UNKNOWN, false,
+                    List.of("Invalid JSON format"));
         }
 
         // Extract input fields
-        String requestNumber = context.getRequestNumber() != null ? context.getRequestNumber() : "unknown";
-        String loanNumber = context.getLoanNumber() != null ? context.getLoanNumber() : "unknown";
+        String requestNumber = context.getRequestNumber() != null ? context.getRequestNumber()
+                : WorkflowConstants.DEFAULT_UNKNOWN;
+        String loanNumber = context.getLoanNumber() != null ? context.getLoanNumber()
+                : WorkflowConstants.DEFAULT_UNKNOWN;
 
         logger.debug("Checking completion criteria for requestNumber: {}, loanNumber: {}",
                 requestNumber, loanNumber);
@@ -84,7 +87,7 @@ public class CompletionCriteriaHandler implements Function<JsonNode, JsonNode> {
         if (isComplete) {
             try {
                 state.setUpdatedAt(java.time.Instant.now().toString());
-                state.setWorkflowStateName("CompletionCriteriaMet");
+                state.setWorkflowStateName(WorkflowConstants.STATE_COMPLETION_CRITERIA_MET);
                 workflowStateRepository.save(state);
                 logger.info("Workflow state updated - completion criteria met for requestNumber: {}",
                         requestNumber);
@@ -108,14 +111,6 @@ public class CompletionCriteriaHandler implements Function<JsonNode, JsonNode> {
                 .put(WorkflowConstants.KEY_LOAN_NUMBER, loanNumber)
                 .put(WorkflowConstants.KEY_COMPLETE, complete)
                 .put(WorkflowConstants.KEY_BLOCKING_REASONS, String.join(", ", blockingReasons));
-    }
-
-    private JsonNode createErrorResponse(String requestNumber, String loanNumber, String error) {
-        return objectMapper.createObjectNode()
-                .put(WorkflowConstants.KEY_SUCCESS, false)
-                .put(WorkflowConstants.KEY_REQUEST_NUMBER, requestNumber)
-                .put(WorkflowConstants.KEY_LOAN_NUMBER, loanNumber)
-                .put(WorkflowConstants.KEY_ERROR, error);
     }
 
 }

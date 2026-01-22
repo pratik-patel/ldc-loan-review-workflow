@@ -23,7 +23,7 @@ import java.util.function.Function;
  * Initiates a new Step Function execution for loan review workflow.
  * Returns response conforming to loan-ppa-workflow-response.schema.json
  */
-@Component
+@Component("startPPAreview")
 public class StartPpaReviewApiHandler implements Function<JsonNode, JsonNode> {
 
     private static final Logger logger = LoggerFactory.getLogger(StartPpaReviewApiHandler.class);
@@ -87,7 +87,7 @@ public class StartPpaReviewApiHandler implements Function<JsonNode, JsonNode> {
                             request.getRequestNumber(),
                             request.getLoanNumber());
 
-            if (existingCheck.isPresent() && "RUNNING".equals(existingCheck.get().getStatus())) {
+            if (existingCheck.isPresent() && WorkflowConstants.STATUS_RUNNING.equals(existingCheck.get().getStatus())) {
                 logger.warn("Active execution already exists for RequestNumber: {}, LoanNumber: {}",
                         request.getRequestNumber(), request.getLoanNumber());
                 return createErrorResponse("Active workflow execution already exists for this loan. " +
@@ -121,13 +121,14 @@ public class StartPpaReviewApiHandler implements Function<JsonNode, JsonNode> {
                 state.setLoanNumber(request.getLoanNumber());
                 state.setReviewType(request.getReviewType());
                 state.setExecutionId(executionArn);
-                state.setStatus("RUNNING");
-                state.setWorkflowStateName("ValidateReviewType");
+                state.setStatus(WorkflowConstants.STATUS_RUNNING);
+                state.setWorkflowStateName(WorkflowConstants.STATE_VALIDATE_REVIEW_TYPE);
                 state.setCurrentWorkflowStage(WorkflowConstants.STAGE_REVIEW_INITIATED);
-                state.setTaskNumber(request.getTaskNumber());
+
                 state.setRetryCount(0);
                 state.setCurrentAssignedUsername(
-                        request.getReviewStepUserId() != null ? request.getReviewStepUserId() : "System");
+                        request.getReviewStepUserId() != null ? request.getReviewStepUserId()
+                                : WorkflowConstants.DEFAULT_SYSTEM_USER);
                 state.setCreatedAt(Instant.now().toString());
                 state.setUpdatedAt(Instant.now().toString());
 
@@ -138,7 +139,8 @@ public class StartPpaReviewApiHandler implements Function<JsonNode, JsonNode> {
                                 com.ldc.workflow.types.LoanAttribute loanAttr = new com.ldc.workflow.types.LoanAttribute();
                                 loanAttr.setAttributeName(attr.getName());
                                 loanAttr.setAttributeDecision(
-                                        attr.getDecision() != null ? attr.getDecision() : "Pending");
+                                        attr.getDecision() != null ? attr.getDecision()
+                                                : WorkflowConstants.STATUS_PENDING);
                                 return loanAttr;
                             })
                             .collect(java.util.stream.Collectors.toList());
@@ -146,7 +148,7 @@ public class StartPpaReviewApiHandler implements Function<JsonNode, JsonNode> {
                 }
 
                 // Set initial loan decision as "Pending Review"
-                state.setLoanDecision("Pending Review");
+                state.setLoanDecision(WorkflowConstants.STATUS_PENDING_REVIEW);
 
                 workflowStateRepository.save(state);
                 logger.info("Workflow state persisted for RequestNumber: {} with {} attributes",
@@ -158,7 +160,7 @@ public class StartPpaReviewApiHandler implements Function<JsonNode, JsonNode> {
             }
 
             // Return schema-compliant response (Requirement 1.8)
-            return createSuccessResponse(request, executionArn, "ValidateReviewType");
+            return createSuccessResponse(request, executionArn, WorkflowConstants.STATE_VALIDATE_REVIEW_TYPE);
 
         } catch (Exception e) {
             logger.error("Error in start PPA review API handler", e);
@@ -172,16 +174,15 @@ public class StartPpaReviewApiHandler implements Function<JsonNode, JsonNode> {
     private JsonNode createSuccessResponse(LoanPpaRequest request, String executionArn, String workflowStateName) {
         try {
             ObjectNode response = objectMapper.createObjectNode();
-            ArrayNode workflows = response.putArray("workflows");
+            ArrayNode workflows = response.putArray(WorkflowConstants.KEY_WORKFLOWS);
 
             ObjectNode workflow = workflows.addObject();
-            if (request.getTaskNumber() != null) {
-                workflow.put(WorkflowConstants.KEY_TASK_NUMBER, request.getTaskNumber());
-            }
+
             workflow.put(WorkflowConstants.KEY_REQUEST_NUMBER, request.getRequestNumber());
             workflow.put(WorkflowConstants.KEY_LOAN_NUMBER, request.getLoanNumber());
             workflow.put(WorkflowConstants.KEY_LOAN_DECISION,
-                    request.getLoanDecision() != null ? request.getLoanDecision() : "Pending Review");
+                    request.getLoanDecision() != null ? request.getLoanDecision()
+                            : WorkflowConstants.STATUS_PENDING_REVIEW);
 
             // Add attributes if present
             if (request.getAttributes() != null && !request.getAttributes().isEmpty()) {
@@ -195,18 +196,21 @@ public class StartPpaReviewApiHandler implements Function<JsonNode, JsonNode> {
 
             workflow.put(WorkflowConstants.KEY_REVIEW_STEP, mapReviewTypeToStep(request.getReviewType()));
             workflow.put(WorkflowConstants.KEY_REVIEW_STEP_USER_ID,
-                    request.getReviewStepUserId() != null ? request.getReviewStepUserId() : "System");
+                    request.getReviewStepUserId() != null ? request.getReviewStepUserId()
+                            : WorkflowConstants.DEFAULT_SYSTEM_USER);
             workflow.put(WorkflowConstants.KEY_WORKFLOW_STATE_NAME, workflowStateName);
             workflow.put(WorkflowConstants.KEY_CURRENT_WORKFLOW_STAGE, WorkflowConstants.STAGE_REVIEW_INITIATED);
-            workflow.put(WorkflowConstants.KEY_STATUS, "RUNNING");
+            workflow.put(WorkflowConstants.KEY_STATUS, WorkflowConstants.STATUS_RUNNING);
             workflow.put(WorkflowConstants.KEY_RETRY_COUNT, 0);
 
             // Add initial state transition
             ArrayNode stateHistory = workflow.putArray(WorkflowConstants.KEY_STATE_TRANSITION_HISTORY);
             ObjectNode initialTransition = stateHistory.addObject();
-            initialTransition.put(WorkflowConstants.KEY_WORKFLOW_STATE_NAME, "ValidateReviewType");
+            initialTransition.put(WorkflowConstants.KEY_WORKFLOW_STATE_NAME,
+                    WorkflowConstants.STATE_VALIDATE_REVIEW_TYPE);
             initialTransition.put(WorkflowConstants.KEY_WORKFLOW_STATE_USER_ID,
-                    request.getReviewStepUserId() != null ? request.getReviewStepUserId() : "System");
+                    request.getReviewStepUserId() != null ? request.getReviewStepUserId()
+                            : WorkflowConstants.DEFAULT_SYSTEM_USER);
             initialTransition.put(WorkflowConstants.KEY_WORKFLOW_STATE_START_DATE_TIME, Instant.now().toString());
             initialTransition.put(WorkflowConstants.KEY_WORKFLOW_STATE_END_DATE_TIME, Instant.now().toString());
 
@@ -222,14 +226,14 @@ public class StartPpaReviewApiHandler implements Function<JsonNode, JsonNode> {
      */
     private String mapReviewTypeToStep(String reviewType) {
         switch (reviewType) {
-            case "LDC":
-                return "LDC Review";
-            case "Sec Policy":
-                return "Sec Policy Review";
-            case "Conduit":
-                return "Conduit Review";
+            case WorkflowConstants.REVIEW_TYPE_LDC:
+                return WorkflowConstants.REVIEW_STEP_LDC;
+            case WorkflowConstants.REVIEW_TYPE_SEC_POLICY:
+                return WorkflowConstants.REVIEW_STEP_SEC_POLICY;
+            case WorkflowConstants.REVIEW_TYPE_CONDUIT:
+                return WorkflowConstants.REVIEW_STEP_CONDUIT;
             default:
-                return "System Process";
+                return WorkflowConstants.REVIEW_STEP_SYSTEM;
         }
     }
 
@@ -237,9 +241,9 @@ public class StartPpaReviewApiHandler implements Function<JsonNode, JsonNode> {
      * Validate ReviewType against allowed enum values
      */
     private boolean isValidReviewType(String reviewType) {
-        return "LDC".equals(reviewType) ||
-                "Sec Policy".equals(reviewType) ||
-                "Conduit".equals(reviewType);
+        return WorkflowConstants.REVIEW_TYPE_LDC.equals(reviewType) ||
+                WorkflowConstants.REVIEW_TYPE_SEC_POLICY.equals(reviewType) ||
+                WorkflowConstants.REVIEW_TYPE_CONDUIT.equals(reviewType);
     }
 
     /**

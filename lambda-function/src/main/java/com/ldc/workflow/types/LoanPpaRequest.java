@@ -1,15 +1,14 @@
 package com.ldc.workflow.types;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class LoanPpaRequest {
 
     @JsonProperty("handlerType")
     private String handlerType;
-
-    @JsonProperty("TaskNumber")
-    private Integer taskNumber;
 
     @JsonProperty("RequestNumber")
     private String requestNumber;
@@ -32,9 +31,16 @@ public class LoanPpaRequest {
     @JsonProperty("Attributes")
     private List<Attribute> attributes;
 
+    @JsonProperty("ExecutionId")
+    private String executionId;
+
+    @JsonProperty("StateName")
+    private String stateName;
+
+    @JsonProperty("EnteredTime")
+    private String enteredTime;
+
     public static class SelectionCriteria {
-        @JsonProperty("TaskNumber")
-        private Integer taskNumber;
 
         @JsonProperty("RequestNumber")
         private String requestNumber;
@@ -52,13 +58,6 @@ public class LoanPpaRequest {
         private String reviewStepUserId;
 
         // Getters and Setters
-        public Integer getTaskNumber() {
-            return taskNumber;
-        }
-
-        public void setTaskNumber(Integer taskNumber) {
-            this.taskNumber = taskNumber;
-        }
 
         public String getRequestNumber() {
             return requestNumber;
@@ -127,13 +126,6 @@ public class LoanPpaRequest {
     }
 
     // Getters and Setters
-    public Integer getTaskNumber() {
-        return taskNumber;
-    }
-
-    public void setTaskNumber(Integer taskNumber) {
-        this.taskNumber = taskNumber;
-    }
 
     public String getRequestNumber() {
         return requestNumber;
@@ -189,5 +181,29 @@ public class LoanPpaRequest {
 
     public void setAttributes(List<Attribute> attributes) {
         this.attributes = attributes;
+    }
+
+    public String getExecutionId() {
+        return executionId;
+    }
+
+    public void setExecutionId(String executionId) {
+        this.executionId = executionId;
+    }
+
+    public String getStateName() {
+        return stateName;
+    }
+
+    public void setStateName(String stateName) {
+        this.stateName = stateName;
+    }
+
+    public String getEnteredTime() {
+        return enteredTime;
+    }
+
+    public void setEnteredTime(String enteredTime) {
+        this.enteredTime = enteredTime;
     }
 }

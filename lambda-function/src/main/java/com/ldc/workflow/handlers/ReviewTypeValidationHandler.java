@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -51,12 +52,13 @@ public class ReviewTypeValidationHandler implements Function<JsonNode, JsonNode>
                 request = objectMapper.treeToValue(input, LoanPpaRequest.class);
             } catch (Exception e) {
                 logger.error("Invalid request schema", e);
-                return createErrorResponse("unknown", "Invalid request format: " + e.getMessage());
+                return createErrorResponse(WorkflowConstants.DEFAULT_UNKNOWN,
+                        "Invalid request format: " + e.getMessage());
             }
 
             // Validate Required Fields
             if (request.getRequestNumber() == null)
-                return createErrorResponse("unknown", "Missing RequestNumber");
+                return createErrorResponse(WorkflowConstants.DEFAULT_UNKNOWN, "Missing RequestNumber");
             if (request.getLoanNumber() == null)
                 return createErrorResponse(request.getRequestNumber(), "Missing LoanNumber");
             if (request.getReviewType() == null)
@@ -67,56 +69,58 @@ public class ReviewTypeValidationHandler implements Function<JsonNode, JsonNode>
                 return createErrorResponse(request.getRequestNumber(), "Invalid LoanNumber format");
             }
 
-            // Map External Review Type to Internal (Req 9.3)
-            String internalReviewType;
-            switch (request.getReviewType()) {
-                case "LDC":
-                    internalReviewType = "LDCReview";
-                    break;
-                case "Sec Policy":
-                    internalReviewType = "SecPolicyReview";
-                    break;
-                case "Conduit":
-                    internalReviewType = "ConduitReview";
-                    break;
-                default:
-                    // Also accept internal types if passed directly
-                    if (reviewTypeValidator.isValid(request.getReviewType())) {
-                        internalReviewType = request.getReviewType();
-                    } else {
-                        return createErrorResponse(request.getRequestNumber(),
-                                "Invalid ReviewType: " + request.getReviewType());
-                    }
+            // Validate Review Type against allowed values (Req 9.3)
+            String reviewType = request.getReviewType();
+            if (!reviewTypeValidator.isValid(reviewType)) {
+                return createErrorResponse(request.getRequestNumber(),
+                        "Invalid ReviewType. Must be one of: " +
+                                WorkflowConstants.REVIEW_TYPE_LDC + ", " +
+                                WorkflowConstants.REVIEW_TYPE_SEC_POLICY + ", " +
+                                WorkflowConstants.REVIEW_TYPE_CONDUIT);
             }
 
-            String executionId = "ldc-loan-review-" + request.getRequestNumber();
+            String executionId = request.getExecutionId() != null
+                    ? request.getExecutionId()
+                    : "ldc-loan-review-" + request.getRequestNumber();
 
-            // Requirement 10: Initialize State History
-            WorkflowState state = new WorkflowState();
-            state.setRequestNumber(request.getRequestNumber());
-            state.setLoanNumber(request.getLoanNumber());
-            state.setReviewType(internalReviewType);
+            // Look up existing workflow state (created by StartPpaReviewApiHandler) or
+            // create new
+            Optional<WorkflowState> existingState = workflowStateRepository.findByRequestNumberAndLoanNumber(
+                    request.getRequestNumber(), request.getLoanNumber());
+
+            WorkflowState state;
+            if (existingState.isPresent()) {
+                // Update existing state
+                state = existingState.get();
+                logger.info("Found existing workflow state for RequestNumber: {}", request.getRequestNumber());
+            } else {
+                // Create new state (for direct Step Function invocation without API)
+                state = new WorkflowState();
+                state.setRequestNumber(request.getRequestNumber());
+                state.setLoanNumber(request.getLoanNumber());
+                state.setCreatedAt(Instant.now().toString());
+                logger.info("Creating new workflow state for RequestNumber: {}", request.getRequestNumber());
+            }
+
+            // Update state fields
+            state.setReviewType(reviewType);
             state.setExecutionId(executionId);
-            state.setStatus("PENDING");
-            state.setWorkflowStateName("ValidateReviewType");
-            state.setCreatedAt(Instant.now().toString());
+
+            state.setStatus(WorkflowConstants.STATUS_RUNNING);
+            state.setWorkflowStateName(request.getStateName() != null ? request.getStateName()
+                    : WorkflowConstants.STATE_VALIDATE_REVIEW_TYPE);
 
             // Add Initial State Transition
             StateTransition initialTransition = new StateTransition(
-                    "ValidateReviewType",
-                    request.getReviewStepUserId() != null ? request.getReviewStepUserId() : "System",
+                    WorkflowConstants.STATE_VALIDATE_REVIEW_TYPE,
+                    request.getReviewStepUserId() != null ? request.getReviewStepUserId()
+                            : WorkflowConstants.DEFAULT_SYSTEM_USER,
                     Instant.now().toString(),
                     Instant.now().toString());
             state.addStateTransition(initialTransition);
 
-            // Copy attributes if present (Req 9.5 validation happens in validator/logic)
+            // Copy attributes if present
             if (request.getAttributes() != null) {
-                // Convert LoanPpaRequest.Attribute to LoanAttribute internal type if needed,
-                // or just store raw for now. Assuming LoanAttribute is compatible or similar.
-                // For now, we will serialize/deserialize to handle the type mismatch if fields
-                // align
-                // But LoanAttribute uses lowercase 'attributeName' vs 'Name'.
-                // We need to map them.
                 List<com.ldc.workflow.types.LoanAttribute> internalAttributes = new ArrayList<>();
                 for (LoanPpaRequest.Attribute attr : request.getAttributes()) {
                     com.ldc.workflow.types.LoanAttribute internalAttr = new com.ldc.workflow.types.LoanAttribute();
@@ -127,7 +131,7 @@ public class ReviewTypeValidationHandler implements Function<JsonNode, JsonNode>
                 state.setAttributes(internalAttributes);
             }
 
-            // Save to DynamoDB
+            // Save (insert or update)
             workflowStateRepository.save(state);
             logger.info("Review type validated and stored successfully for RequestNumber: {}",
                     request.getRequestNumber());
@@ -140,7 +144,7 @@ public class ReviewTypeValidationHandler implements Function<JsonNode, JsonNode>
 
         } catch (Exception e) {
             logger.error("Error in review type validation handler", e);
-            return createErrorResponse("unknown", "Internal error: " + e.getMessage());
+            return createErrorResponse(WorkflowConstants.DEFAULT_UNKNOWN, "Internal error: " + e.getMessage());
         }
     }
 
