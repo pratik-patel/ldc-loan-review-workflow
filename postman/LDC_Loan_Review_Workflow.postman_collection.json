@@ -61,7 +61,37 @@
                     "response": []
                 },
                 {
-                    "name": "Submit Loan Decision (Approved)",
+                    "name": "Assign to Type (Approved)",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "// Add 5 second delay to allow Step Function to reach wait state/save token",
+                                    "var date = new Date();",
+                                    "var curDate = null;",
+                                    "do { curDate = new Date(); }",
+                                    "while(curDate-date < 5000);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.workflows && jsonData.workflows.length > 0) {",
+                                    "    pm.expect(jsonData.workflows).to.be.an('array');",
+                                    "    pm.expect(jsonData.workflows[0].Status).to.not.eql(undefined);",
+                                    "} else {",
+                                    "    pm.expect(jsonData.Success).to.eql(true);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -72,7 +102,46 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"RequestNumber\": \"{{requestNumber}}\",\n    \"LoanNumber\": \"{{loanNumber}}\",\n    \"LoanDecision\": \"Approved\"\n}"
+                            "raw": "{\n    \"RequestNumber\": \"{{requestNumber}}\",\n    \"LoanNumber\": \"{{loanNumber}}\",\n    \"NewReviewType\": \"LDC\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/assignToType",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "assignToType"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Submit Loan Decision (Approved)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "pm.expect(jsonData.workflows[0].Status).to.eql(\"RUNNING\");",
+                                    "pm.expect(jsonData.workflows[0].LoanDecision).to.eql(\"Approved\");"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"RequestNumber\": \"{{requestNumber}}\",\n    \"LoanNumber\": \"{{loanNumber}}\",\n    \"LoanDecision\": \"Approved\",\n    \"Attributes\": [\n        {\"Name\": \"CreditScore\", \"Decision\": \"Approved\"},\n        {\"Name\": \"DebtRatio\", \"Decision\": \"Approved\"}\n    ]\n}"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/getNextStep",
@@ -135,6 +204,47 @@
                             ],
                             "path": [
                                 "startPPAreview"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Assign to Type (Rejected)",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "// Add 5 second delay to allow Step Function to reach wait state/save token",
+                                    "var date = new Date();",
+                                    "var curDate = null;",
+                                    "do { curDate = new Date(); }",
+                                    "while(curDate-date < 5000);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"RequestNumber\": \"{{requestNumber_rejected}}\",\n    \"LoanNumber\": \"{{loanNumber}}\",\n    \"NewReviewType\": \"LDC\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/assignToType",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "assignToType"
                             ]
                         }
                     },
@@ -220,6 +330,47 @@
                     "response": []
                 },
                 {
+                    "name": "Assign to Type (Repurchase)",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "// Add 5 second delay to allow Step Function to reach wait state/save token",
+                                    "var date = new Date();",
+                                    "var curDate = null;",
+                                    "do { curDate = new Date(); }",
+                                    "while(curDate-date < 5000);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"RequestNumber\": \"{{requestNumber_repurchase}}\",\n    \"LoanNumber\": \"{{loanNumber}}\",\n    \"NewReviewType\": \"LDC\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/assignToType",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "assignToType"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
                     "name": "Submit Loan Decision (Repurchase)",
                     "request": {
                         "method": "POST",
@@ -293,6 +444,47 @@
                             ],
                             "path": [
                                 "startPPAreview"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Assign to Type (Reclass)",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "// Add 5 second delay to allow Step Function to reach wait state/save token",
+                                    "var date = new Date();",
+                                    "var curDate = null;",
+                                    "do { curDate = new Date(); }",
+                                    "while(curDate-date < 5000);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"RequestNumber\": \"{{requestNumber_reclass}}\",\n    \"LoanNumber\": \"{{loanNumber}}\",\n    \"NewReviewType\": \"LDC\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/assignToType",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "assignToType"
                             ]
                         }
                     },

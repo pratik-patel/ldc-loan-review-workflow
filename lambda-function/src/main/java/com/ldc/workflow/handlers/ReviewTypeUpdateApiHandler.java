@@ -65,12 +65,15 @@ public class ReviewTypeUpdateApiHandler implements Function<JsonNode, JsonNode> 
             String newReviewType = context.getNewReviewType();
             String taskToken = context.getTaskToken();
 
-            if (requestNumber == null || loanNumber == null || newReviewType == null || taskToken == null) {
+            if (requestNumber == null || loanNumber == null || newReviewType == null) {
                 String reqNum = requestNumber != null ? requestNumber : WorkflowConstants.DEFAULT_UNKNOWN;
                 return createErrorResponse(reqNum,
                         (loanNumber != null ? loanNumber : WorkflowConstants.DEFAULT_UNKNOWN),
-                        "Missing required fields: requestNumber, loanNumber, newReviewType, taskToken");
+                        "Missing required fields: requestNumber, loanNumber, or newReviewType");
             }
+
+            // Task Token can be passed via WorkflowContext
+            String inputTaskToken = context.getTaskToken();
 
             logger.debug("Updating review type for requestNumber: {}, loanNumber: {}, newReviewType: {}",
                     requestNumber, loanNumber, newReviewType);
@@ -100,22 +103,39 @@ public class ReviewTypeUpdateApiHandler implements Function<JsonNode, JsonNode> 
 
             logger.info("Review type updated successfully for requestNumber: {}", requestNumber);
 
-            // Resume Step Functions execution and wait for completion
-            logger.info("Resuming Step Functions for Request: {}", requestNumber);
-            resumeStepFunctionsExecution(taskToken, state);
-            logger.info("Step Functions resumed successfully for Request: {}", requestNumber);
+            // Determine Token to use: Input takes precedence, fallback to DB
+            String tokenToUse = inputTaskToken;
+            if (tokenToUse == null || tokenToUse.isEmpty()) {
+                tokenToUse = state.getTaskToken();
+                logger.debug("Using task token from database");
+            }
 
-            // Wait for Step Functions to complete processing (with timeout)
-            logger.info("Waiting for Step Functions callback for Request: {}, Loan: {}",
-                    requestNumber, loanNumber);
-            WorkflowState updatedState = workflowCallbackService.waitForCallback(requestNumber, loanNumber, null);
+            if (tokenToUse != null && !tokenToUse.isEmpty()) {
+                // Resume Step Functions execution and wait for completion
+                logger.info("Resuming Step Functions for Request: {}", requestNumber);
+                resumeStepFunctionsExecution(tokenToUse, state);
+                logger.info("Step Functions resumed successfully for Request: {}", requestNumber);
 
-            if (updatedState != null) {
-                logger.info("Received updated state from Step Functions for Request: {}", requestNumber);
-                return createSuccessResponse(requestNumber, loanNumber, updatedState);
+                // Wait for Step Functions to complete processing (with timeout)
+                logger.info("Waiting for Step Functions callback for Request: {}, Loan: {}",
+                        requestNumber, loanNumber);
+                WorkflowState updatedState = workflowCallbackService.waitForCallback(requestNumber, loanNumber, null);
+
+                if (updatedState != null) {
+                    logger.info("Received updated state from Step Functions for Request: {}", requestNumber);
+                    return createSuccessResponse(requestNumber, loanNumber, updatedState);
+                } else {
+                    logger.warn("Callback timeout for Request: {}. Returning current state.", requestNumber);
+                    return createSuccessResponse(requestNumber, loanNumber, state);
+                }
             } else {
-                logger.warn("Callback timeout for Request: {}. Returning current state.", requestNumber);
-                return createSuccessResponse(requestNumber, loanNumber, state);
+                logger.error("CRITICAL: No Task Token available for Request: {}. Workflow will NOT resume! " +
+                        "DB token: {}, Input token: {}",
+                        requestNumber,
+                        state.getTaskToken(),
+                        inputTaskToken);
+                return createErrorResponse(requestNumber, loanNumber,
+                        "No Task Token found. Workflow not ready. Please retry.");
             }
         } catch (Exception e) {
             logger.error("Error in review type update API handler", e);
