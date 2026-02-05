@@ -5,12 +5,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.ldc.workflow.repository.WorkflowStateRepository;
+import com.ldc.workflow.service.WorkflowCallbackService;
 import com.ldc.workflow.types.WorkflowState;
+import com.ldc.workflow.types.StateTransition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.ldc.workflow.constants.WorkflowConstants;
+
+import java.time.Instant;
 
 import java.util.Optional;
 import java.util.function.Function;
@@ -30,9 +34,12 @@ public class VendPpaIntegrationHandler implements Function<JsonNode, JsonNode> {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private final WorkflowStateRepository workflowStateRepository;
+    private final WorkflowCallbackService workflowCallbackService;
 
-    public VendPpaIntegrationHandler(WorkflowStateRepository workflowStateRepository) {
+    public VendPpaIntegrationHandler(WorkflowStateRepository workflowStateRepository,
+            WorkflowCallbackService workflowCallbackService) {
         this.workflowStateRepository = workflowStateRepository;
+        this.workflowCallbackService = workflowCallbackService;
     }
 
     @Override
@@ -87,10 +94,26 @@ public class VendPpaIntegrationHandler implements Function<JsonNode, JsonNode> {
                 state.setStatus(WorkflowConstants.STATUS_COMPLETED);
                 state.setWorkflowStateName(WorkflowConstants.STATE_WORKFLOW_COMPLETE);
                 state.setUpdatedAt(java.time.Instant.now().toString());
+                
+                // Append state transition
+                StateTransition transition = new StateTransition(
+                    WorkflowConstants.STATE_WORKFLOW_COMPLETE,
+                    WorkflowConstants.DEFAULT_SYSTEM_USER,
+                    Instant.now().toString(),
+                    Instant.now().toString()
+                );
+                state.addStateTransition(transition);
+                
                 workflowStateRepository.save(state);
                 logger.info("Workflow marked as COMPLETED for requestNumber: {}", requestNumber);
             } catch (Exception e) {
                 logger.error("Failed to update workflow completion status", e);
+            }
+
+            // Notify any waiting API handlers that Step Functions has completed
+            if (workflowCallbackService.hasPendingCallback(requestNumber, loanNumber)) {
+                logger.info("Notifying callback for Request: {}, Loan: {}", requestNumber, loanNumber);
+                workflowCallbackService.notifyCallback(requestNumber, loanNumber, state);
             }
 
             return createSuccessResponse(requestNumber, loanNumber, vendPpaResponse);
@@ -125,28 +148,9 @@ public class VendPpaIntegrationHandler implements Function<JsonNode, JsonNode> {
 
             String requestBodyJson = objectMapper.writeValueAsString(requestBody);
 
-            // Create TLS context with permissive trust for dev/test environments
-            // IMPORTANT: In production, use proper certificate validation
-            javax.net.ssl.TrustManager[] trustAllCerts = new javax.net.ssl.TrustManager[] {
-                    new javax.net.ssl.X509TrustManager() {
-                        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                            return new java.security.cert.X509Certificate[0];
-                        }
-
-                        public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-                            // Permissive for dev/test - do not use in production
-                        }
-
-                        public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-                            // Permissive for dev/test - do not use in production
-                        }
-                    }
-            };
-            javax.net.ssl.SSLContext sslContext = javax.net.ssl.SSLContext.getInstance("TLSv1.3");
-            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
-
+            // Use default HttpClient with proper certificate validation
+            // This ensures secure communication with Vend/PPA API
             java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
-                    .sslContext(sslContext)
                     .build();
 
             java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
@@ -161,10 +165,6 @@ public class VendPpaIntegrationHandler implements Function<JsonNode, JsonNode> {
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
                 return objectMapper.readTree(response.body());
             } else {
-                // If endpoint returns error, mock success for testing if it's just a 404 on
-                // dummy url
-                // preventing hard failure? No, user said always enabled.
-                // But if it fails, throw exception.
                 throw new RuntimeException("Vend PPA API returned error status: " + response.statusCode());
             }
 

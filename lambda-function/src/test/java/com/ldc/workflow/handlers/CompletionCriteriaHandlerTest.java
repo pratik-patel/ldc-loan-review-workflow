@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ldc.workflow.business.CompletionCriteriaChecker;
 import com.ldc.workflow.repository.WorkflowStateRepository;
 import com.ldc.workflow.constants.WorkflowConstants;
+import com.ldc.workflow.service.WorkflowCallbackService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,11 +35,14 @@ class CompletionCriteriaHandlerTest {
     @Mock
     private com.ldc.workflow.repository.WorkflowStateRepository workflowStateRepository;
 
+    @Mock
+    private WorkflowCallbackService workflowCallbackService;
+
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
         completionCriteriaChecker = new CompletionCriteriaChecker();
-        handler = new CompletionCriteriaHandler(completionCriteriaChecker, workflowStateRepository);
+        handler = new CompletionCriteriaHandler(completionCriteriaChecker, workflowStateRepository, workflowCallbackService);
     }
 
     // Helper to mock state repository response - for valid scenarios

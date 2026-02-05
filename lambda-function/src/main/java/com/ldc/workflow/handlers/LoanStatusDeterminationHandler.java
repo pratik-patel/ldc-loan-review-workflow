@@ -5,7 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ldc.workflow.business.LoanStatusDeterminer;
 import com.ldc.workflow.types.LoanAttribute;
 import com.ldc.workflow.repository.WorkflowStateRepository;
+import com.ldc.workflow.service.WorkflowCallbackService;
 import com.ldc.workflow.constants.WorkflowConstants;
+import com.ldc.workflow.types.StateTransition;
+import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -28,11 +31,14 @@ public class LoanStatusDeterminationHandler implements Function<JsonNode, JsonNo
 
     private final LoanStatusDeterminer loanStatusDeterminer;
     private final WorkflowStateRepository workflowStateRepository;
+    private final WorkflowCallbackService workflowCallbackService;
 
     public LoanStatusDeterminationHandler(LoanStatusDeterminer loanStatusDeterminer,
-            WorkflowStateRepository workflowStateRepository) {
+            WorkflowStateRepository workflowStateRepository,
+            WorkflowCallbackService workflowCallbackService) {
         this.loanStatusDeterminer = loanStatusDeterminer;
         this.workflowStateRepository = workflowStateRepository;
+        this.workflowCallbackService = workflowCallbackService;
     }
 
     @Override
@@ -80,6 +86,15 @@ public class LoanStatusDeterminationHandler implements Function<JsonNode, JsonNo
             state.setCurrentWorkflowStage(WorkflowConstants.STAGE_LOAN_STATUS_DETERMINED_PREFIX + loanStatus);
             state.setUpdatedAt(java.time.Instant.now().toString());
 
+            // Append state transition
+            StateTransition transition = new StateTransition(
+                WorkflowConstants.STATE_DETERMINE_LOAN_STATUS,
+                WorkflowConstants.DEFAULT_SYSTEM_USER,
+                Instant.now().toString(),
+                Instant.now().toString()
+            );
+            state.addStateTransition(transition);
+
             // Save updated state to database
             try {
                 workflowStateRepository.save(state);
@@ -88,6 +103,12 @@ public class LoanStatusDeterminationHandler implements Function<JsonNode, JsonNo
             } catch (Exception e) {
                 logger.error("Failed to update workflow state", e);
                 // Continue anyway - status was determined
+            }
+
+            // Notify any waiting API handlers that Step Functions has completed
+            if (workflowCallbackService.hasPendingCallback(requestNumber, loanNumber)) {
+                logger.info("Notifying callback for Request: {}, Loan: {}", requestNumber, loanNumber);
+                workflowCallbackService.notifyCallback(requestNumber, loanNumber, state);
             }
 
             // Return success response

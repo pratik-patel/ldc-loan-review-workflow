@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ldc.workflow.repository.WorkflowStateRepository;
 import com.ldc.workflow.constants.WorkflowConstants;
 import com.ldc.workflow.service.StepFunctionsService;
+import com.ldc.workflow.service.WorkflowCallbackService;
 import com.ldc.workflow.types.WorkflowState;
 import com.ldc.workflow.validation.ReviewTypeValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,11 +37,14 @@ public class ReviewTypeUpdateApiHandlerTest {
     @Mock
     private StepFunctionsService stepFunctionsService;
 
+    @Mock
+    private WorkflowCallbackService workflowCallbackService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
-        handler = new ReviewTypeUpdateApiHandler(reviewTypeValidator, workflowStateRepository, stepFunctionsService);
+        handler = new ReviewTypeUpdateApiHandler(reviewTypeValidator, workflowStateRepository, stepFunctionsService, workflowCallbackService);
 
         // Lenient stubs
         lenient().when(reviewTypeValidator.isValid(anyString())).thenReturn(true);

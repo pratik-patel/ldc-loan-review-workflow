@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ldc.workflow.repository.WorkflowStateRepository;
 import com.ldc.workflow.constants.WorkflowConstants;
 import com.ldc.workflow.service.StepFunctionsService;
+import com.ldc.workflow.service.WorkflowCallbackService;
 import com.ldc.workflow.types.LoanAttribute;
 import com.ldc.workflow.types.WorkflowState;
 import com.ldc.workflow.validation.AttributeDecisionValidator;
@@ -37,12 +38,15 @@ public class LoanDecisionUpdateApiHandlerTest {
     @Mock
     private StepFunctionsService stepFunctionsService;
 
+    @Mock
+    private WorkflowCallbackService workflowCallbackService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
         handler = new LoanDecisionUpdateApiHandler(attributeDecisionValidator, workflowStateRepository,
-                stepFunctionsService);
+                stepFunctionsService, workflowCallbackService);
 
         // Lenient stubs to prevent unnecessary stubbing errors
         lenient().when(attributeDecisionValidator.isValid(anyString())).thenReturn(true);

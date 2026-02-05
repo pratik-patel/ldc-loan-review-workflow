@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ldc.workflow.business.LoanStatusDeterminer;
 import com.ldc.workflow.types.LoanAttribute;
 import com.ldc.workflow.constants.WorkflowConstants;
+import com.ldc.workflow.service.WorkflowCallbackService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,10 +40,13 @@ class LoanStatusDeterminationHandlerTest {
     @Mock
     private com.ldc.workflow.repository.WorkflowStateRepository workflowStateRepository;
 
+    @Mock
+    private WorkflowCallbackService workflowCallbackService;
+
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        handler = new LoanStatusDeterminationHandler(loanStatusDeterminer, workflowStateRepository);
+        handler = new LoanStatusDeterminationHandler(loanStatusDeterminer, workflowStateRepository, workflowCallbackService);
     }
 
     // Helper to mock state repository response

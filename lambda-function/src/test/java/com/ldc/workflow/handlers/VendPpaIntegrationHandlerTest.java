@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ldc.workflow.repository.WorkflowStateRepository;
 import com.ldc.workflow.types.WorkflowState;
 import com.ldc.workflow.constants.WorkflowConstants;
+import com.ldc.workflow.service.WorkflowCallbackService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,11 +27,14 @@ public class VendPpaIntegrationHandlerTest {
     @Mock
     private WorkflowStateRepository workflowStateRepository;
 
+    @Mock
+    private WorkflowCallbackService workflowCallbackService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
-        handler = new VendPpaIntegrationHandler(workflowStateRepository);
+        handler = new VendPpaIntegrationHandler(workflowStateRepository, workflowCallbackService);
     }
 
     @Test

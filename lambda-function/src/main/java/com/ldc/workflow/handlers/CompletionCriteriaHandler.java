@@ -5,7 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ldc.workflow.business.CompletionCriteriaChecker;
 import com.ldc.workflow.constants.WorkflowConstants;
 import com.ldc.workflow.repository.WorkflowStateRepository;
+import com.ldc.workflow.service.WorkflowCallbackService;
 import com.ldc.workflow.types.LoanAttribute;
+import com.ldc.workflow.types.StateTransition;
+import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -30,11 +33,14 @@ public class CompletionCriteriaHandler implements Function<JsonNode, JsonNode> {
 
     private final CompletionCriteriaChecker completionCriteriaChecker;
     private final WorkflowStateRepository workflowStateRepository;
+    private final WorkflowCallbackService workflowCallbackService;
 
     public CompletionCriteriaHandler(CompletionCriteriaChecker completionCriteriaChecker,
-            WorkflowStateRepository workflowStateRepository) {
+            WorkflowStateRepository workflowStateRepository,
+            WorkflowCallbackService workflowCallbackService) {
         this.completionCriteriaChecker = completionCriteriaChecker;
         this.workflowStateRepository = workflowStateRepository;
+        this.workflowCallbackService = workflowCallbackService;
     }
 
     @Override
@@ -88,6 +94,16 @@ public class CompletionCriteriaHandler implements Function<JsonNode, JsonNode> {
             try {
                 state.setUpdatedAt(java.time.Instant.now().toString());
                 state.setWorkflowStateName(WorkflowConstants.STATE_COMPLETION_CRITERIA_MET);
+                
+                // Append state transition
+                StateTransition transition = new StateTransition(
+                    WorkflowConstants.STATE_COMPLETION_CRITERIA_MET,
+                    WorkflowConstants.DEFAULT_SYSTEM_USER,
+                    Instant.now().toString(),
+                    Instant.now().toString()
+                );
+                state.addStateTransition(transition);
+                
                 workflowStateRepository.save(state);
                 logger.info("Workflow state updated - completion criteria met for requestNumber: {}",
                         requestNumber);
@@ -95,6 +111,13 @@ public class CompletionCriteriaHandler implements Function<JsonNode, JsonNode> {
                 logger.error("Failed to update workflow state", e);
                 // Continue anyway
             }
+
+            // Notify any waiting API handlers that Step Functions has completed
+            if (workflowCallbackService.hasPendingCallback(requestNumber, loanNumber)) {
+                logger.info("Notifying callback for Request: {}, Loan: {}", requestNumber, loanNumber);
+                workflowCallbackService.notifyCallback(requestNumber, loanNumber, state);
+            }
+
             return createSuccessResponse(requestNumber, loanNumber, true, List.of());
         } else {
             String reason = completionCriteriaChecker.getIncompleteReason(

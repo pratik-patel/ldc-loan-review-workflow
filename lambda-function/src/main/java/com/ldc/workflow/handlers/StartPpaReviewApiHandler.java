@@ -70,11 +70,6 @@ public class StartPpaReviewApiHandler implements Function<JsonNode, JsonNode> {
                 return createErrorResponse("Missing required field: ReviewType");
             }
 
-            // Validate LoanNumber pattern (Requirement 1.6)
-            if (!request.getLoanNumber().matches("^[0-9]{10}$")) {
-                return createErrorResponse("Invalid LoanNumber format. Must be 10 digits.");
-            }
-
             // Validate ReviewType enum (Requirement 1.5)
             if (!isValidReviewType(request.getReviewType())) {
                 return createErrorResponse("Invalid ReviewType. Must be one of: LDC, Sec Policy, Conduit");

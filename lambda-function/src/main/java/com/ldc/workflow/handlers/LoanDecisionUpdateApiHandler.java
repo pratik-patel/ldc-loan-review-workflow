@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ldc.workflow.constants.WorkflowConstants;
 import com.ldc.workflow.repository.WorkflowStateRepository;
 import com.ldc.workflow.service.StepFunctionsService;
+import com.ldc.workflow.service.WorkflowCallbackService;
 import com.ldc.workflow.types.LoanAttribute;
 import com.ldc.workflow.types.WorkflowState;
 import com.ldc.workflow.validation.AttributeDecisionValidator;
@@ -36,13 +37,16 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
     private final AttributeDecisionValidator attributeDecisionValidator;
     private final WorkflowStateRepository workflowStateRepository;
     private final StepFunctionsService stepFunctionsService;
+    private final WorkflowCallbackService workflowCallbackService;
 
     public LoanDecisionUpdateApiHandler(AttributeDecisionValidator attributeDecisionValidator,
             WorkflowStateRepository workflowStateRepository,
-            StepFunctionsService stepFunctionsService) {
+            StepFunctionsService stepFunctionsService,
+            WorkflowCallbackService workflowCallbackService) {
         this.attributeDecisionValidator = attributeDecisionValidator;
         this.workflowStateRepository = workflowStateRepository;
         this.stepFunctionsService = stepFunctionsService;
+        this.workflowCallbackService = workflowCallbackService;
     }
 
     @Override
@@ -130,16 +134,27 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
             String tokenToUse = inputTaskToken;
             if (tokenToUse == null || tokenToUse.isEmpty()) {
                 tokenToUse = state.getTaskToken();
-                logger.debug("No taskToken in input, using DB token: {}",
-                        tokenToUse != null ? tokenToUse.substring(0, Math.min(20, tokenToUse.length())) + "..."
-                                : "null");
+                logger.debug("Using task token from database");
             }
 
             if (tokenToUse != null && !tokenToUse.isEmpty()) {
-                // Resume Step Functions execution
-                logger.info("Resuming Step Functions for Request: {} with token", requestNumber);
+                // Resume Step Functions execution and wait for completion
+                logger.info("Resuming Step Functions for Request: {}", requestNumber);
                 resumeStepFunctionsExecution(tokenToUse, state);
                 logger.info("Step Functions resumed successfully for Request: {}", requestNumber);
+
+                // Wait for Step Functions to complete processing (with timeout)
+                logger.info("Waiting for Step Functions callback for Request: {}, Loan: {}", 
+                        requestNumber, loanNumber);
+                WorkflowState updatedState = workflowCallbackService.waitForCallback(requestNumber, loanNumber, null);
+
+                if (updatedState != null) {
+                    logger.info("Received updated state from Step Functions for Request: {}", requestNumber);
+                    return createSuccessResponse(requestNumber, loanNumber, updatedState);
+                } else {
+                    logger.warn("Callback timeout for Request: {}. Returning current state.", requestNumber);
+                    return createSuccessResponse(requestNumber, loanNumber, state);
+                }
             } else {
                 logger.error("CRITICAL: No Task Token available for Request: {}. Workflow will NOT resume! " +
                         "DB token: {}, Input token: {}",
@@ -238,6 +253,73 @@ public class LoanDecisionUpdateApiHandler implements Function<JsonNode, JsonNode
                     .put(WorkflowConstants.KEY_SUCCESS, true)
                     .put(WorkflowConstants.KEY_REQUEST_NUMBER, requestNumber)
                     .put(WorkflowConstants.KEY_MESSAGE, message);
+        }
+    }
+
+    /**
+     * Overloaded version that accepts a WorkflowState directly.
+     * Used when we have the updated state from Step Functions callback.
+     */
+    private JsonNode createSuccessResponse(String requestNumber, String loanNumber, WorkflowState state) {
+        try {
+            ObjectNode response = objectMapper.createObjectNode();
+            ArrayNode workflows = response.putArray(WorkflowConstants.KEY_WORKFLOWS);
+            ObjectNode workflow = workflows.addObject();
+
+            // Required fields per schema
+            workflow.put(WorkflowConstants.KEY_REQUEST_NUMBER, requestNumber);
+            workflow.put(WorkflowConstants.KEY_LOAN_NUMBER, loanNumber);
+
+            // Add state fields from the provided state
+            workflow.put(WorkflowConstants.KEY_LOAN_DECISION,
+                    state.getLoanDecision() != null ? state.getLoanDecision()
+                            : WorkflowConstants.STATUS_PENDING_REVIEW);
+            workflow.put(WorkflowConstants.KEY_REVIEW_STEP, mapReviewTypeToStep(state.getReviewType()));
+            workflow.put(WorkflowConstants.KEY_WORKFLOW_STATE_NAME,
+                    state.getWorkflowStateName() != null ? state.getWorkflowStateName()
+                            : WorkflowConstants.STATE_PROCESSING);
+            workflow.put(WorkflowConstants.KEY_CURRENT_WORKFLOW_STAGE,
+                    state.getCurrentWorkflowStage() != null ? state.getCurrentWorkflowStage()
+                            : WorkflowConstants.STAGE_LOAN_DECISION_RECEIVED);
+            workflow.put(WorkflowConstants.KEY_STATUS,
+                    state.getStatus() != null ? state.getStatus() : WorkflowConstants.STATUS_RUNNING);
+
+            workflow.put(WorkflowConstants.KEY_RETRY_COUNT, state.getRetryCount());
+            workflow.put(WorkflowConstants.KEY_REVIEW_STEP_USER_ID,
+                    state.getCurrentAssignedUsername() != null ? state.getCurrentAssignedUsername()
+                            : WorkflowConstants.DEFAULT_SYSTEM_USER);
+
+            // Add attributes if present
+            if (state.getAttributes() != null && !state.getAttributes().isEmpty()) {
+                ArrayNode attributes = workflow.putArray(WorkflowConstants.KEY_ATTRIBUTES);
+                for (com.ldc.workflow.types.LoanAttribute attr : state.getAttributes()) {
+                    ObjectNode attrNode = attributes.addObject();
+                    attrNode.put(WorkflowConstants.KEY_NAME, attr.getAttributeName());
+                    attrNode.put(WorkflowConstants.KEY_DECISION, attr.getAttributeDecision());
+                }
+            }
+
+            // Add state transition history if present
+            if (state.getStateTransitionHistory() != null && !state.getStateTransitionHistory().isEmpty()) {
+                ArrayNode history = workflow.putArray(WorkflowConstants.KEY_STATE_TRANSITION_HISTORY);
+                for (com.ldc.workflow.types.StateTransition transition : state.getStateTransitionHistory()) {
+                    ObjectNode transitionNode = history.addObject();
+                    transitionNode.put(WorkflowConstants.KEY_WORKFLOW_STATE_NAME, transition.getWorkflowStateName());
+                    transitionNode.put(WorkflowConstants.KEY_WORKFLOW_STATE_USER_ID, transition.getWorkflowStateUserId());
+                    transitionNode.put(WorkflowConstants.KEY_WORKFLOW_STATE_START_DATE_TIME, transition.getWorkflowStateStartDateTime());
+                    transitionNode.put(WorkflowConstants.KEY_WORKFLOW_STATE_END_DATE_TIME, transition.getWorkflowStateEndDateTime());
+                }
+            }
+
+            return response;
+        } catch (Exception e) {
+            logger.error("Error creating schema-compliant response from WorkflowState", e);
+            // Fallback to simple response
+            return objectMapper.createObjectNode()
+                    .put(WorkflowConstants.KEY_SUCCESS, true)
+                    .put(WorkflowConstants.KEY_REQUEST_NUMBER, requestNumber)
+                    .put(WorkflowConstants.KEY_LOAN_NUMBER, loanNumber)
+                    .put(WorkflowConstants.KEY_MESSAGE, "Loan decision updated");
         }
     }
 

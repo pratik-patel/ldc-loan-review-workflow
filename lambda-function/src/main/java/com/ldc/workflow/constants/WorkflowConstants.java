@@ -95,6 +95,7 @@ public final class WorkflowConstants {
     public static final String STATE_WORKFLOW_COMPLETE = "WorkflowComplete";
     public static final String STATE_COMPLETION_CRITERIA_MET = "CompletionCriteriaMet";
     public static final String STATE_LOAN_DECISION_UPDATE = "LoanDecisionUpdate";
+    public static final String STATE_DETERMINE_LOAN_STATUS = "DetermineLoanStatus";
     public static final String STATE_PROCESSING = "Processing";
     public static final String STATE_UPDATED = "Updated";
 
